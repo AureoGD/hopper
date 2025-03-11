@@ -189,7 +189,7 @@ class JumperEnv(gym.Env):
             )
 
         for idx in range(len(self.robot_mdl.CONTACT_JOINTS)):
-            if len(p.getContactPoints(bodyA=self.model, linkIndexA=self.robot_mdl.CONTACT_JOINTS[idx] - 1)) > 0:
+            if len(p.getContactPoints(bodyA=self.model, linkIndexA=self.robot_mdl.CONTACT_JOINTS[idx])) > 0:
                 self.f_cont[idx, 0] = 1
             else:
                 self.f_cont[idx, 0] = 0

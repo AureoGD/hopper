@@ -42,7 +42,7 @@ class JumpMLFcns:
             50,
             self.NUM_ACTIONS,
             self.N,
-            1,
+            3,
         ]
         self.obs_st_min = [
             -100,
@@ -82,7 +82,7 @@ class JumpMLFcns:
         self.max_inter = 1000
         self.inter = 0
 
-        self.rewards = np.zeros((9, 1), dtype=np.double)
+        self.rewards = np.zeros((10, 1), dtype=np.double)
 
         # class
 
@@ -104,9 +104,11 @@ class JumpMLFcns:
         self.prohibited_po_weight = 3
         self.joint_error_weight = 0.75
         self.body_weight = 3.25
-        self.delta_x_weight = 900
+        self.delta_x_weight = 100
+        self.survive_height = 0.5
 
         self.last_b_x = 0
+        self.delta_x = 0
 
         self.first_interation = True
 
@@ -128,7 +130,7 @@ class JumpMLFcns:
         """
         # append the new action to the list of last N actions and evaluate the history of the transation
         self.transition_history = self._check_transition()
-        self.foot_contact_state = self.robot_states.toe_cont + self.robot_states.toe_cont
+        self.foot_contact_state = self.robot_states.toe_cont + self.robot_states.heel_cont * 2
         states = np.vstack(
             (
                 self.robot_states.r_vel,
@@ -173,12 +175,12 @@ class JumpMLFcns:
 
         self.rewards[7] = self._check_foot_high()
 
+        self.rewards[8] = self._survive_reward()
+
         reward = self.rewards.sum()
         # # Check if the foot is inside the ground
-        self.rewards[8] = self._foot_inside_ground(reward)
-        reward = self.rewards[8]
-        # # Check if the foot is inside the ground
-        # self.rewards_action.append(self.rewards)
+        self.rewards[9] = self._foot_inside_ground(reward)
+        reward = self.rewards[9]
 
         self.episode_reward += reward
 
@@ -220,6 +222,7 @@ class JumpMLFcns:
 
     def reset_vars(self):
         self.actions = deque([-1] * self.N, maxlen=self.N)
+        self.first_landing = False
         self.episode_reward = 0
         self.n_jumps = 0
         self.ac_total_changes = 0
@@ -243,6 +246,9 @@ class JumpMLFcns:
         )
 
     #############################
+    def _survive_reward(self):
+        return self.survive_height
+
     def _compute_joint_error_reward(self):
         # joint_errors = self.qr - self.q
         joint_errors = self.robot_states.qrh - self.robot_states.q
@@ -259,14 +265,14 @@ class JumpMLFcns:
     def _transition_reward(self):
         if self.transition_history > 1:
             return -self.transition_weight * self.transition_history
-        elif self.transition_history <= 1:
+        elif self.transition_history == 1:  # not ideal
             return self.transition_weight
         else:
             return 0
 
     def _compute_delta_x(self):
-        delta_x = abs(self.robot_states.b_pos[0, 0] - self.last_b_x)
-        self.last_b_x = self.robot_states.b_pos[0, 0]
+        delta_x = self.delta_x
+        self.delta_x = 0
         return self.delta_x_weight * delta_x
 
     def _check_rgc_violation(self):
@@ -295,15 +301,13 @@ class JumpMLFcns:
     def _check_foot_high(self):
         # Calculate foot height
         toe_height = self.robot_states.toe_pos[1, 0]
-        toe_contact = self.robot_states.toe_cont[0, 0]
+        # toe_contact = self.robot_states.toe_cont[0, 0]
 
         heel_height = self.robot_states.heel_pos[1, 0]
-        hell_contact = self.robot_states.heel_cont[0, 0]
+        # hell_contact = self.robot_states.heel_cont[0, 0]
 
-        foot_meam_hight = (toe_height + heel_height) / 2
-
-        if (toe_contact == 0) and (hell_contact == 0) and (foot_meam_hight > self.jump_height_threshold):
-            # Reward is proportional to how close the foot height is to the desired height
+        if toe_height > self.jump_height_threshold and heel_height > self.jump_height_threshold:
+            foot_meam_hight = (toe_height + heel_height) / 2
             return self.jump_height_weight * np.clip(
                 foot_meam_hight - self.jump_height_threshold,
                 a_min=self.jump_height_threshold,
@@ -326,15 +330,17 @@ class JumpMLFcns:
         """
         Track the air time of the robot based on foot contact (foot_contact_state).
         """
-        if self.foot_contact_state and not self.first_landing:
+        if (self.foot_contact_state[0, 0] == 3) and not self.first_landing:
             self.first_landing = True
 
         # Start jump timer when the foot leaves the ground
-        if self.first_landing and not self.foot_contact_state and self.time_jump == 0:
+        if self.first_landing and (self.foot_contact_state[0, 0] == 0) and self.time_jump == 0:
             self.time_jump = time.time()
+            self.last_b_x = self.robot_states.b_pos[0, 0]
 
         # End jump timer and calculate delta_jump when foot touches the ground again
-        if self.first_landing and self.foot_contact_state and self.time_jump != 0:
+        if self.first_landing and (self.foot_contact_state[0, 0] != 0) and self.time_jump != 0:
             self.delta_jump = time.time() - self.time_jump
+            self.delta_x = abs(self.robot_states.b_pos[0, 0] - self.last_b_x)
             self.time_jump = 0
             self.first_landing = False  # Reset for next jump

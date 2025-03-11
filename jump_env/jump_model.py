@@ -172,8 +172,8 @@ class JumpModel:
         self.robot_states.dq[1, 0] = dq_aux[4, 0]
         self.robot_states.dq[2, 0] = dq_aux[5, 0]
 
-        self.robot_states.toe_cont[:] = aux_F_cont[0, 0]
         self.robot_states.heel_cont[:] = aux_F_cont[1, 0]
+        self.robot_states.toe_cont[:] = aux_F_cont[0, 0]
 
         self.mdl.update_robot_states(q=self.robot_states.q, dq=self.robot_states.dq)
         self.mdl.update_kinematics()
