@@ -115,6 +115,18 @@ void OptProblem2::UpdateModelConstants()
     this->GRF_mtx << (-a_coef * this->n1 + this->t1).transpose(),
         (a_coef * this->n1 + this->t1).transpose(),
         this->n1.transpose();
+
+    Eigen::MatrixXd Ub, Lb;
+    double g = -9.81;
+
+    Ub.resize(10, 1);
+    Ub << RobotMtx->qU, 0, 0, OsqpEigen::INFTY, -g * 2.5 * RobotMtx->m, 0, OsqpEigen::INFTY, -g * 2.5 * RobotMtx->m;
+
+    Lb.resize(10, 1);
+    Lb << RobotMtx->qL, 0, -OsqpEigen::INFTY, 0, -g * 0.5 * RobotMtx->m, -OsqpEigen::INFTY, 0, -g * 0.5 * RobotMtx->m;
+
+    this->UpdateReferences();
+    this->SetConsBounds(Lb, Ub);
 }
 
 void OptProblem2::UpdateDynamicModel()

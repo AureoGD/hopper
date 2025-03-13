@@ -19,11 +19,14 @@ OptProblem5::OptProblem5(ModelMatrices *Robot) : RobotMtx(Robot)
     this->Ca.setZero();
 
     // q, grf_toe, grf_heel
-    this->C_cons.resize(9, 13);
+    // this->C_cons.resize(9, 13);
+    this->C_cons.resize(3, 13);
 
     this->C_cons.setZero();
 
-    this->C_consV.resize(9, 1);
+    // this->C_consV.resize(9, 1);
+    this->C_consV.resize(3, 1);
+
     this->C_consV.setZero();
 
     // main reference
@@ -57,6 +60,7 @@ void OptProblem5::UpdateModelConstants()
     Ca = |0 I 0 0 0| y = |q|
 */
     this->qhl << 50, -90, 60;
+
     this->qhl = this->qhl * PI / 180;
 
     // Initialize matrices constants
@@ -86,11 +90,11 @@ void OptProblem5::UpdateModelConstants()
     // joint pos constraint
     this->C_cons.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
-    this->C_cons.block(3, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
-    this->C_cons.block(3, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
+    // this->C_cons.block(3, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
+    // this->C_cons.block(3, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
 
-    this->C_cons.block(6, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
-    this->C_cons.block(6, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
+    // this->C_cons.block(6, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
+    // this->C_cons.block(6, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
 
     this->n1 << 0, 1, 0;
     this->t1 << 1, 0, 0;
@@ -101,6 +105,22 @@ void OptProblem5::UpdateModelConstants()
     this->GRF_mtx << (-a_coef * this->n1 + this->t1).transpose(),
         (a_coef * this->n1 + this->t1).transpose(),
         this->n1.transpose();
+
+    Eigen::MatrixXd Ub, Lb;
+    double g = -9.81;
+
+    // Ub.resize(9, 1);
+    // Ub << RobotMtx->qU, 0, OsqpEigen::INFTY, -g * 2.5 * RobotMtx->m, 0, OsqpEigen::INFTY, -g * 2.5 * RobotMtx->m;
+    // Lb.resize(9, 1);
+    // Lb << RobotMtx->qL, -OsqpEigen::INFTY, 0, -g * 0.5 * RobotMtx->m, -OsqpEigen::INFTY, 0, -g * 0.5 * RobotMtx->m;
+
+    Ub.resize(3, 1);
+    Ub << RobotMtx->qU;
+    Lb.resize(3, 1);
+    Lb << RobotMtx->qL;
+
+    this->UpdateReferences();
+    this->SetConsBounds(Lb, Ub);
 }
 
 void OptProblem5::UpdateDynamicModel()
@@ -181,8 +201,8 @@ void OptProblem5::UpdateDynamicModel()
     Aa.block(0, 10, 10, 3) = ts * B;
     Ba.block(0, 0, 10, 3) = ts * B;
 
-    this->C_cons.block(3, 0, 3, 3) = -Kd * T0;
-    this->C_cons.block(6, 0, 3, 3) = -Kd * T0;
+    // this->C_cons.block(3, 0, 3, 3) = -Kd * T0;
+    // this->C_cons.block(6, 0, 3, 3) = -Kd * T0;
 }
 
 void OptProblem5::DefineConstraintMtxs()
@@ -191,19 +211,19 @@ void OptProblem5::DefineConstraintMtxs()
     this->Phi_cons.block(0, 0, 3, this->nxa) = this->C_cons.block(0, 0, 3, this->nxa) * this->Aa;
     this->aux_cons.block(0, 0, 3, this->nu) = this->C_cons.block(0, 0, 3, this->nxa) * this->Ba;
 
-    auto roty = RobotMtx->Rot_mtx;
+    // auto roty = RobotMtx->Rot_mtx;
 
-    auto J_toe = roty * RobotMtx->J_toe;
-    Eigen::Matrix3d Jcs;
-    Jcs << J_toe(0, 0), J_toe(0, 1), J_toe(0, 2), J_toe(2, 0), J_toe(2, 1), J_toe(2, 2), 1, 1, 1;
+    // auto J_toe = roty * RobotMtx->J_toe;
+    // Eigen::Matrix3d Jcs;
+    // Jcs << J_toe(0, 0), J_toe(0, 1), J_toe(0, 2), J_toe(2, 0), J_toe(2, 1), J_toe(2, 2), 1, 1, 1;
 
-    this->Phi_cons.block(3, 0, 3, this->nxa) = -GRF_mtx * (Jcs.transpose()).inverse() * this->C_cons.block(3, 0, 3, this->nxa);
-    this->aux_cons.block(3, 0, 3, this->nu) = -Kp * GRF_mtx * (Jcs.transpose()).inverse();
+    // this->Phi_cons.block(3, 0, 3, this->nxa) = -GRF_mtx * (Jcs.transpose()).inverse() * this->C_cons.block(3, 0, 3, this->nxa);
+    // this->aux_cons.block(3, 0, 3, this->nu) = -Kp * GRF_mtx * (Jcs.transpose()).inverse();
 
-    auto J_heel = roty * RobotMtx->J_heel;
+    // auto J_heel = roty * RobotMtx->J_heel;
 
-    Jcs << J_heel(0, 0), J_heel(0, 1), J_heel(0, 2), J_heel(2, 0), J_heel(2, 1), J_heel(2, 2), 1, 1, 1;
+    // Jcs << J_heel(0, 0), J_heel(0, 1), J_heel(0, 2), J_heel(2, 0), J_heel(2, 1), J_heel(2, 2), 1, 1, 1;
 
-    this->Phi_cons.block(6, 0, 3, this->nxa) = -GRF_mtx * (Jcs.transpose()).inverse() * this->C_cons.block(6, 0, 3, this->nxa);
-    this->aux_cons.block(6, 0, 3, this->nu) = -Kp * GRF_mtx * (Jcs.transpose()).inverse();
+    // this->Phi_cons.block(6, 0, 3, this->nxa) = -GRF_mtx * (Jcs.transpose()).inverse() * this->C_cons.block(6, 0, 3, this->nxa);
+    // this->aux_cons.block(6, 0, 3, this->nu) = -Kp * GRF_mtx * (Jcs.transpose()).inverse();
 }

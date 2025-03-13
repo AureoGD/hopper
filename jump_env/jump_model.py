@@ -10,6 +10,9 @@ import time
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_path + "/../rgc_controller/build")
+rgc_controller_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../rgc_controller/config/config.yaml"))
+
+
 import pybind_opWrapper
 
 sys.path.append("./model")
@@ -76,6 +79,7 @@ class JumpModel:
 
         # RGC variables and objects
         self.RGC = pybind_opWrapper.Op_Wrapper()
+        self.RGC.load_config(rgc_controller_path)
         self.RGC.RGCConfig(self.rgc_dt, self.kp, self.kd)
 
         # Robot states variables

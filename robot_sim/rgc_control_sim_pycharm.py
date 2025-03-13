@@ -18,6 +18,9 @@ sys.path.append(current_path + "/../rgc_controller/build")
 import pybind_opWrapper
 
 
+rgc_controller_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../rgc_controller/config/config.yaml"))
+
+
 mdl = model_matrices.ModelMatrices()
 gvctrl = rgc.rgc()
 
@@ -39,14 +42,14 @@ p.setAdditionalSearchPath(pybullet_data.getDataPath())
 plane = p.loadURDF("plane.urdf", [0, 0, 0], [0, 0, 0, 1])
 p.changeDynamics(plane, -1, lateralFriction=1.0)
 
-model = p.loadURDF(MODEL_PATH, [0, 0, 1.15], p.getQuaternionFromEuler([0, 0 * np.pi / 180, 0]))
+model = p.loadURDF(MODEL_PATH, [0, 0, 0], p.getQuaternionFromEuler([0, 0 * np.pi / 180, 0]))
 
 number_joints = p.getNumJoints(model)
 
 for idx in range(number_joints - 1):
     p.setJointMotorControl2(model, idx, p.VELOCITY_CONTROL, force=0)
 
-q0 = np.array([0, 1.15, 0, np.pi * 32.5 / 180, np.pi * -60 / 180, np.pi * 32.5 / 180])
+q0 = np.array([0, 0.9, 0, np.pi * 32.5 / 180, np.pi * -60 / 180, np.pi * 32.5 / 180])
 
 for idx in range(len(JOINT_ST_LIST)):
     p.resetJointState(model, JOINT_ST_LIST[idx], q0[idx])
@@ -80,16 +83,16 @@ t2 = np.zeros((4, 1), dtype=np.float64)
 
 
 # [t, rw, drw, b, db, th, dth, q, dq]
-
-x_his = np.zeros((10, N_int * ch))
-q_his = np.zeros((10, N_int * ch))
+max_int = 20000
+x_his = np.zeros((10, max_int))
+q_his = np.zeros((10, max_int))
 
 kp = 180
 kd = np.sqrt(kp)
 
 KP_mtx = kp * np.identity(len(AC_JOINT_LIST))
 KD_mtx = kd * np.identity(len(AC_JOINT_LIST))
-V_MAX_TAU = 150 * np.ones((len(AC_JOINT_LIST), 1), dtype=np.float64)
+V_MAX_TAU = 50 * np.ones((len(AC_JOINT_LIST), 1), dtype=np.float64)
 
 qrh[:, 0] = q0[3:]
 qr[:, 0] = q0[3:]
@@ -99,6 +102,7 @@ flag = True
 PO = 0
 
 RGC = pybind_opWrapper.Op_Wrapper()
+RGC.load_config(rgc_controller_path)
 RGC.RGCConfig(0.01, kp, kd)
 
 
@@ -227,19 +231,31 @@ def write_history():
     q_his[9, count] = qrh[2, 0]
 
 
-while count <= N_int * ch - 1:
+# while count <= N_int * ch - 1:
+
+while count <= max_int - 1:
     get_joit_states()
     t1, t2 = low_lvl_control()
     write_history()
     p.stepSimulation()
     count += 1
-    if count % N_int == 0:
-        if flag:
-            PO = 5
-            flag = False
-        else:
-            PO = 6
-            flag = True
+    if count > 9999 and count < 15000:
+        PO = 2
+    elif count > 15000 and count < 15250:
+        PO = 4
+    elif count > 15250 and count < 15500:
+        PO = 6
+    elif count > 15500 and count < 16100:
+        PO = 5
+    elif count > 16100:
+        PO = 2
+    # if count % N_int == 0:
+    # if flag:
+    #     PO = 2
+    #     flag = False
+    # else:
+    #     PO = 4
+    #     flag = True
     # time.sleep(SIM_TIME)
 
 p.disconnect()

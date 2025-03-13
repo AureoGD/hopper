@@ -79,10 +79,10 @@ class JumpMLFcns:
         self.episode_reward = 0
         self.min_reward = -250
 
-        self.max_inter = 1000
+        self.max_inter = 1500
         self.inter = 0
 
-        self.rewards = np.zeros((10, 1), dtype=np.double)
+        self.rewards = np.zeros((11, 1), dtype=np.double)
 
         # class
 
@@ -105,7 +105,8 @@ class JumpMLFcns:
         self.joint_error_weight = 0.75
         self.body_weight = 3.25
         self.delta_x_weight = 100
-        self.survive_height = 0.5
+        self.survive_weight = 0.5
+        self.body_orietation_weight = 1
 
         self.last_b_x = 0
         self.delta_x = 0
@@ -177,10 +178,12 @@ class JumpMLFcns:
 
         self.rewards[8] = self._survive_reward()
 
+        self.rewards[9] = self._body_orietation_reward()
+
         reward = self.rewards.sum()
         # # Check if the foot is inside the ground
-        self.rewards[9] = self._foot_inside_ground(reward)
-        reward = self.rewards[9]
+        self.rewards[10] = self._foot_inside_ground(reward)
+        reward = self.rewards[10]
 
         self.episode_reward += reward
 
@@ -246,8 +249,16 @@ class JumpMLFcns:
         )
 
     #############################
+
+    def _body_orietation_reward(self):
+        th = self.robot_states.th[0, 0]
+        if th < -0.5 or th > 0.5:
+            return -self.body_orietation_weight * 100 * (abs(th) - 0.5)
+        else:
+            return 0
+
     def _survive_reward(self):
-        return self.survive_height
+        return self.survive_weight
 
     def _compute_joint_error_reward(self):
         # joint_errors = self.qr - self.q
@@ -258,7 +269,7 @@ class JumpMLFcns:
 
     def _compute_contact_penalty(self):
         # Penalty if foot contact state and certain actions occur
-        if (self.robot_states.toe_cont or self.robot_states.heel_cont) and (self.actions[0] in [5, 6]):
+        if (self.robot_states.toe_cont or self.robot_states.heel_cont) and (self.actions[0] in [6, 5]):
             return -self.prohibited_po_weight
         return 0
 

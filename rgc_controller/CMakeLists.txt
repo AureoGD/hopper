@@ -17,6 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(OsqpEigen REQUIRED)
 find_package(pybind11 REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(yaml-cpp REQUIRED)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -40,7 +41,10 @@ add_library(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
         OsqpEigen::OsqpEigen
+        yaml-cpp
 )
+
+configure_file(${CMAKE_SOURCE_DIR}/config/config.yaml ${CMAKE_BINARY_DIR}/config/config.yaml COPYONLY)
 
 set(BINDINGS_MODULE_NAME "pybind_opWrapper")
 

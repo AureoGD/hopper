@@ -76,6 +76,15 @@ void OptProblem7::UpdateModelConstants()
     this->C_consV.setZero();
     this->Ucv_var.setZero();
     this->Lcv_var.setZero();
+
+    Eigen::MatrixXd Ub, Lb;
+    Ub.resize(3, 1);
+    Ub << RobotMtx->qU;
+    Lb.resize(3, 1);
+    Lb << RobotMtx->qL;
+
+    this->UpdateReferences();
+    this->SetConsBounds(Lb, Ub);
 }
 
 void OptProblem7::UpdateDynamicModel()

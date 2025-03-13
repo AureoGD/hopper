@@ -40,138 +40,70 @@ Op_Wrapper::~Op_Wrapper()
 
 void Op_Wrapper::RGCConfig(double _ts, double _Kp, double _Kd)
 {
-
+    std::cout << "Configurinh the POs" << std::endl;
+    // this->LoadConfig("config/config.yaml");
     // TODO - create a function that reads some loader file (YALM file)
-    Eigen::MatrixXd Q, R, ref, Ub, Lb;
+    std::vector<int> indices = {0, 1, 2, 3, 4, 5, 6, 7}; // All relevant indices
 
-    Q.resize(3, 3);
-    Q << 0.0025, 0, 0,
-        0, 0.0025, 0,
-        0, 0, 0.0025;
+    for (int i : indices)
+    {
+        this->op[i]->SetInternalVariables();
+        this->op[i]->SetConstants(_ts, N_matrices[i], M_matrices[i], _Kp, _Kd);
+        this->op[i]->UpdateModelConstants();
 
-    R.resize(3, 3);
-    R << 1.5, 0, 0,
-        0, 1.5, 0,
-        0, 0, 1.5;
+        this->ConfPO(i);
 
-    Ub.resize(10, 1);
-    Ub << _JumpRobot->qU, 0, 0, OsqpEigen::INFTY, -this->g * 2.5 * _JumpRobot->m, 0, OsqpEigen::INFTY, -this->g * 2.5 * _JumpRobot->m;
-    Lb.resize(10, 1);
-    Lb << _JumpRobot->qL, 0, -OsqpEigen::INFTY, 0, -this->g * 0.5 * _JumpRobot->m, -OsqpEigen::INFTY, 0, -this->g * 0.5 * _JumpRobot->m;
+        // Directly use vector indexing (faster than unordered_map lookup)
+        this->op[i]->SetWeightMatrices(this->Q_matrices[i], this->R_matrices[i]);
 
-    this->op[0]->SetInternalVariables();
-    this->op[0]->SetConstants(_ts, 15, 10, _Kp, _Kd);
-    this->op[0]->UpdateModelConstants();
-
-    this->ConfPO(0);
-    this->op[0]->SetWeightMatrices(Q, R);
-    this->op[0]->UpdateReferences();
-    this->op[0]->SetConsBounds(Lb, Ub);
-
-    this->ClearPO();
-    this->ClearData();
-
-    this->op[1]->SetInternalVariables();
-    this->op[1]->SetConstants(_ts, 15, 10, _Kp, _Kd);
-    this->op[1]->UpdateModelConstants();
-
-    this->ConfPO(1);
-
-    this->op[1]->SetWeightMatrices(Q, R);
-    this->op[1]->UpdateReferences();
-    this->op[1]->SetConsBounds(Lb, Ub);
-
-    this->ClearPO();
-    this->ClearData();
-
-    this->op[2]->SetInternalVariables();
-    this->op[2]->SetConstants(_ts, 15, 10, _Kp, _Kd);
-    this->op[2]->UpdateModelConstants();
-
-    this->ConfPO(2);
-
-    this->op[2]->SetWeightMatrices(Q, R);
-    this->op[2]->UpdateReferences();
-    this->op[2]->SetConsBounds(Lb, Ub);
-
-    this->ClearPO();
-    this->ClearData();
-
-    this->op[3]->SetInternalVariables();
-    this->op[3]->SetConstants(_ts, 15, 10, _Kp, _Kd);
-    this->op[3]->UpdateModelConstants();
-
-    this->ConfPO(3);
-
-    Ub.resize(9, 1);
-    Ub << _JumpRobot->qU, 0, OsqpEigen::INFTY, -this->g * 2.5 * _JumpRobot->m, 0, OsqpEigen::INFTY, -this->g * 2.5 * _JumpRobot->m;
-    Lb.resize(9, 1);
-    Lb << _JumpRobot->qL, -OsqpEigen::INFTY, 0, -this->g * 0.5 * _JumpRobot->m, -OsqpEigen::INFTY, 0, -this->g * 0.5 * _JumpRobot->m;
-
-    this->op[3]->SetWeightMatrices(Q, R);
-    this->op[3]->UpdateReferences();
-    this->op[3]->SetConsBounds(Lb, Ub);
-
-    this->ClearPO();
-    this->ClearData();
-
-    this->op[4]->SetInternalVariables();
-    this->op[4]->SetConstants(_ts, 15, 10, _Kp, _Kd);
-    this->op[4]->UpdateModelConstants();
-
-    this->ConfPO(4);
-
-    this->op[4]->SetWeightMatrices(Q, R);
-    this->op[4]->UpdateReferences();
-    this->op[4]->SetConsBounds(Lb, Ub);
-
-    this->ClearPO();
-    this->ClearData();
-
-    this->op[7]->SetInternalVariables();
-    this->op[7]->SetConstants(_ts, 15, 10, _Kp, _Kd);
-    this->op[7]->UpdateModelConstants();
-
-    this->ConfPO(7);
-
-    this->op[7]->SetWeightMatrices(Q, R);
-    this->op[7]->UpdateReferences();
-    this->op[7]->SetConsBounds(Lb, Ub);
-
-    // Flight phase POs
-
-    Ub.resize(3, 1);
-    Ub << _JumpRobot->qU;
-    Lb.resize(3, 1);
-    Lb << _JumpRobot->qL;
-
-    this->ClearPO();
-    this->ClearData();
-
-    this->op[5]->SetInternalVariables();
-    this->op[5]->SetConstants(_ts, 15, 10, _Kp, _Kd);
-    this->op[5]->UpdateModelConstants();
-
-    this->ConfPO(5);
-
-    this->op[5]->SetWeightMatrices(Q, R);
-    this->op[5]->UpdateReferences();
-    this->op[5]->SetConsBounds(Lb, Ub);
-
-    this->ClearPO();
-    this->ClearData();
-
-    this->op[6]->SetInternalVariables();
-    this->op[6]->SetConstants(_ts, 15, 10, _Kp, _Kd);
-    this->op[6]->UpdateModelConstants();
-
-    this->ConfPO(6);
-
-    this->op[6]->SetWeightMatrices(Q, R);
-    this->op[6]->UpdateReferences();
-    this->op[6]->SetConsBounds(Lb, Ub);
+        this->ClearPO();
+        this->ClearData();
+    }
 
     this->first_conf = 1;
+}
+
+void Op_Wrapper::LoadConfig(const std::string &filename)
+{
+    YAML::Node config = YAML::LoadFile(filename);
+
+    // Resize vectors to store 8 elements (indices 0 to 7)
+    Q_matrices.resize(8);
+    R_matrices.resize(8);
+    N_matrices.resize(8);
+    M_matrices.resize(8);
+
+    // Load Q and R diagonal values and construct matrices
+    for (int i = 0; i < 8; i++)
+    {
+        std::string key = std::to_string(i);
+        if (config["PO"][key])
+        {
+            YAML::Node op_node = config["PO"][key];
+
+            // Load Q diagonal elements
+            std::vector<double> Q_diag = op_node["Q"].as<std::vector<double>>();
+            Eigen::MatrixXd Q = Eigen::MatrixXd::Zero(Q_diag.size(), Q_diag.size());
+            for (size_t j = 0; j < Q_diag.size(); j++)
+            {
+                Q(j, j) = Q_diag[j]; // Set diagonal elements
+            }
+            Q_matrices[i] = Q;
+
+            // Load R diagonal elements
+            std::vector<double> R_diag = op_node["R"].as<std::vector<double>>();
+            Eigen::MatrixXd R = Eigen::MatrixXd::Zero(R_diag.size(), R_diag.size());
+            for (size_t j = 0; j < R_diag.size(); j++)
+            {
+                R(j, j) = R_diag[j]; // Set diagonal elements
+            }
+            R_matrices[i] = R;
+            N_matrices[i] = op_node["N"].as<int>();
+            M_matrices[i] = op_node["M"].as<int>();
+        }
+    }
+
+    std::cout << "RGC Configuration Loaded Successfully from " << filename << std::endl;
 }
 
 void Op_Wrapper::UpdateSt(Eigen::Matrix<double, 3, 1> *_q,

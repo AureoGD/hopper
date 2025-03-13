@@ -14,7 +14,8 @@
 
 #include "rgc_controller/model_matrices.h"
 
-// #include "yaml-cpp/yaml.h"
+#include "yaml-cpp/yaml.h"
+#include <filesystem> // To handle paths safely
 
 #include <OsqpEigen/OsqpEigen.h>
 #include "math.h"
@@ -58,6 +59,8 @@ public:
     Eigen::Matrix<double, 2, 1> foot_pos;
     Eigen::Matrix<double, 2, 1> foot_vel;
 
+    void LoadConfig(const std::string &filename);
+
 private:
     void ConfPO(int index);
 
@@ -95,6 +98,11 @@ private:
     bool debug = false;
 
     bool error_flag = false;
+
+    std::vector<Eigen::MatrixXd> Q_matrices;
+    std::vector<Eigen::MatrixXd> R_matrices;
+    std::vector<int> N_matrices;
+    std::vector<int> M_matrices;
 };
 
 #endif
