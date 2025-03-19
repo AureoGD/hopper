@@ -5,7 +5,7 @@ import jumper_env
 
 env = jumper_env.JumperEnv(render=True, render_every=True, log_interval=10)
 
-model_path = "models/1740662522/72500.zip"  # Replace with your model's file path
+model_path = "models/1742333189/best_model.zip"  # Replace with your model's file path
 model = PPO.load(model_path, env=env)  # Load the model
 
 obs, info = env.reset()  # Reset the environment at the beginning of each episode

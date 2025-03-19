@@ -48,8 +48,14 @@ number_joints = p.getNumJoints(model)
 
 for idx in range(number_joints - 1):
     p.setJointMotorControl2(model, idx, p.VELOCITY_CONTROL, force=0)
+    # q[1, 0] = 0.75
+    # q[3, 0] = 0.92
+    # q[4, 0] = -1.6
+    # q[5, 0] = 0.6
+# q0 = np.array([0, 0.75, 0, np.pi * 32.5 / 180, np.pi * -60 / 180, np.pi * 32.5 / 180])
 
-q0 = np.array([0, 0.9, 0, np.pi * 32.5 / 180, np.pi * -60 / 180, np.pi * 32.5 / 180])
+q0 = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
+
 
 for idx in range(len(JOINT_ST_LIST)):
     p.resetJointState(model, JOINT_ST_LIST[idx], q0[idx])

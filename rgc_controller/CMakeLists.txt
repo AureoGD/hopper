@@ -36,6 +36,7 @@ add_library(${PROJECT_NAME}
     src/opt_problem6.cpp
     src/opt_problem7.cpp
     src/opt_problem8.cpp
+    src/opt_problem9.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

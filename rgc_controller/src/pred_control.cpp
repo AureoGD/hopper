@@ -67,13 +67,16 @@ void PredControl::SetWeightMatrices(const Eigen::MatrixXd &Q, const Eigen::Matri
 {
     if (Q.rows() != this->ny || Q.cols() != this->ny)
     {
-        std::cout << "Wrong Q dimension" << std::endl;
+        std::cout << "Wrong Q dimension!" << std::endl;
+        std::cout << "Expected: " << this->ny << "x" << this->ny << " - Receve: " << Q.rows() << "x" << Q.cols() << std::endl;
+
         return;
     }
 
     if (R.rows() != this->nu || R.cols() != this->nu)
     {
-        std::cout << "Wrong R dimension" << std::endl;
+        std::cout << "Wrong R dimension!" << std::endl;
+        std::cout << "Expected: " << this->nu << "x" << this->nu << " - Receve: " << R.rows() << "x" << R.cols() << std::endl;
         return;
     }
 
@@ -90,12 +93,15 @@ void PredControl::SetConsBounds(const Eigen::MatrixXd &Lb, const Eigen::MatrixXd
     if (Lb.rows() != this->nc || Lb.cols() != 1)
     {
         std::cout << "Wrong Lower Bound dimension" << std::endl;
+        std::cout << "Expected: " << this->nc << "x1" << " - Receve: " << Lb.rows() << "x" << Lb.cols() << std::endl;
+
         return;
     }
 
     if (Ub.rows() != this->nc || Ub.cols() != 1)
     {
         std::cout << "Wrong Upper Bound dimension" << std::endl;
+        std::cout << "Expected: " << this->nc << "x1" << " - Receve: " << Ub.rows() << "x" << Ub.cols() << std::endl;
         return;
     }
 

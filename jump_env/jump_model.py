@@ -49,6 +49,7 @@ class RobotStates:
     knee_pos: np.ndarray = field(default_factory=lambda: np.zeros((2, 1), dtype=np.float64))
     knee_vel: np.ndarray = field(default_factory=lambda: np.zeros((2, 1), dtype=np.float64))
 
+    j_val: np.ndarray = field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
     ag_act: np.ndarray = field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
 
     rcg_status: np.ndarray = field(default_factory=lambda: np.zeros((1, 1), dtype=np.float64))
@@ -127,6 +128,7 @@ class JumpModel:
                 self.robot_states.rcg_status = 0
             else:
                 self.robot_states.qr[:, 0] = self.robot_states.qr[:, 0] + delta_qr[:, 0]
+                self.robot_states.j_val[0, 0] = self.RGC.obj_val
         else:
             self.robot_states.rcg_status = -1
 
@@ -197,10 +199,11 @@ class JumpModel:
         # Create a array for joint positions
         # q = [dx. bz. th, q1, q2, q3]
         q = np.zeros((self.JOINT_MODEL_NUM, 1), dtype=np.float64)
-        q[1, 0] = 0.8
-        q[3, 0] = 0.92
-        q[4, 0] = -1.6
-        q[5, 0] = 0.6
+        # q = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
+        q[1, 0] = 0.95
+        q[3, 0] = 0.56
+        q[4, 0] = -1.06
+        q[5, 0] = 0.56
         # heel = 0
         # toe = 0
         # # Ensure that the feet are not inside the ground

@@ -11,6 +11,7 @@
 #include "rgc_controller/opt_problem6.h"
 #include "rgc_controller/opt_problem7.h"
 #include "rgc_controller/opt_problem8.h"
+#include "rgc_controller/opt_problem9.h"
 
 #include "rgc_controller/model_matrices.h"
 
@@ -60,6 +61,7 @@ public:
     Eigen::Matrix<double, 2, 1> foot_vel;
 
     void LoadConfig(const std::string &filename);
+    double obj_val;
 
 private:
     void ConfPO(int index);
@@ -74,10 +76,11 @@ private:
     OptProblem6 *optP6;
     OptProblem7 *optP7;
     OptProblem8 *optP8;
+    OptProblem9 *optP9;
 
     ModelMatrices *_JumpRobot;
 
-    OptProblem *op[8];
+    OptProblem *op[9];
 
     int last_op = -1;
 

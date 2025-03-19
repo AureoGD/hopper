@@ -17,7 +17,7 @@ if not os.path.exists(logdir):
 
 # env.reset()
 
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
+# model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
 # model = A2C("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
 
 TIMESTEPS = 2500

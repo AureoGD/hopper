@@ -13,10 +13,10 @@ class JumpMLFcns:
         # Gym variables
         self.OBS_LOW_VALUE = 0
         self.OBS_HIGH_VALUE = 1
-        self.NUM_OBS_STATES = 24
-        self.NUM_ACTIONS = 8
+        self.NUM_OBS_STATES = 22
+        self.NUM_ACTIONS = 9
 
-        # The observation state are: [r, dr,th, dth, q, dq, qr, qrh, tau, ag_action, trans_history, contact_]
+        # The observation state are: [r, dr,th, dth, q, dq, qr, qrh, tau, ag_action, trans_history, contact_, stagnation_metric]
 
         self.obs_st_max = [
             100,
@@ -34,15 +34,13 @@ class JumpMLFcns:
             1.20 * 1.1,
             0.5 * 1.1,
             1.1 * 1.1,
-            1.20,
-            0.5,
-            1.1,
             50,
             50,
             50,
             self.NUM_ACTIONS,
             self.N,
             3,
+            1,
         ]
         self.obs_st_min = [
             -100,
@@ -60,12 +58,10 @@ class JumpMLFcns:
             -0.50 * 1.1,
             -2.2 * 1.1,
             -1.1 * 1.1,
-            -0.50,
-            -2.2,
-            -1.1,
             -50,
             -50,
             -50,
+            0,
             0,
             0,
             0,
@@ -82,9 +78,9 @@ class JumpMLFcns:
         self.max_inter = 1500
         self.inter = 0
 
-        self.rewards = np.zeros((11, 1), dtype=np.double)
+        self.rewards = np.zeros((12, 1), dtype=np.double)
 
-        # class
+        self.stagnation_metric = 0
 
         self.robot_states = _robot_states
 
@@ -96,20 +92,28 @@ class JumpMLFcns:
         self.delta_jump = 0
         self.first_landing = False
         self.jump_height_threshold = 0.1
+        self.jump_time_threshold = 0.05
 
         self.jump_weight = 2.15 / 100
         self.jump_height_weight = 2.15 / 100
         self.transition_weight = 1.5
         self.const_violation_weight = 3
-        self.prohibited_po_weight = 3
+        self.prohibited_po_weight = 2.1
         self.joint_error_weight = 0.75
         self.body_weight = 3.25
         self.delta_x_weight = 100
-        self.survive_weight = 0.5
-        self.body_orietation_weight = 1
+        self.survive_weight = 2
+        self.body_orietation_weight = 1.2
+        self.j_val_weight = 1
+        self.stagnation_penalty_weight = 1.1
 
         self.last_b_x = 0
         self.delta_x = 0
+
+        self.stagnation_steps = 0  # Count of how long the agent is "stuck"
+        self.stagnation_threshold = 25  # How many steps before penalty
+        self.prev_states = None  # Store previous states for comparison
+        # Weight for stagnation penalty
 
         self.first_interation = True
 
@@ -141,11 +145,11 @@ class JumpMLFcns:
                 self.robot_states.q,
                 self.robot_states.dq,
                 self.robot_states.qr,
-                self.robot_states.qrh,
                 self.robot_states.tau,
                 self.robot_states.ag_act,
                 self.transition_history,
                 self.foot_contact_state,
+                np.array([[self.stagnation_metric]]),
             ),
         )
 
@@ -154,7 +158,8 @@ class JumpMLFcns:
     def _reward(self):
         self.rewards[:] = 0
         # Joint error reward
-        self.rewards[0] = self._compute_joint_error_reward()
+        # self.rewards[0] = self._compute_joint_error_reward()
+        self.rewards[0] = self._po_j_val()
 
         # # Air time reward
         self.rewards[1] = self._compute_air_time_reward()
@@ -180,10 +185,12 @@ class JumpMLFcns:
 
         self.rewards[9] = self._body_orietation_reward()
 
+        self.rewards[10] = self._stagnation_penalty()
+
         reward = self.rewards.sum()
         # # Check if the foot is inside the ground
-        self.rewards[10] = self._foot_inside_ground(reward)
-        reward = self.rewards[10]
+        self.rewards[11] = self._foot_inside_ground(reward)
+        reward = self.rewards[11]
 
         self.episode_reward += reward
 
@@ -250,10 +257,24 @@ class JumpMLFcns:
 
     #############################
 
+    # def _po_j_val(self):
+    #     if np.isnan(self.robot_states.j_val[0, 0]):
+    #         return 0
+    #     else:
+    #         return (
+    #             -self.j_val_weight * self.robot_states.j_val[0, 0] / (np.sqrt(1 + self.robot_states.j_val[0, 0] ** 2))
+    #         )
+
+    def _po_j_val(self):
+        j_val = self.robot_states.j_val[0, 0]
+        if np.isnan(j_val):
+            return 0
+        return -self.j_val_weight * np.sign(j_val) * np.log1p(abs(j_val))
+
     def _body_orietation_reward(self):
         th = self.robot_states.th[0, 0]
-        if th < -0.5 or th > 0.5:
-            return -self.body_orietation_weight * 100 * (abs(th) - 0.5)
+        if th < -0.8 or th > 0.8:
+            return -self.body_orietation_weight * 100 * (abs(th) - 0.8)
         else:
             return 0
 
@@ -298,17 +319,6 @@ class JumpMLFcns:
             return -self.body_weight * (0.50 - self.robot_states.b_pos[1, 0])
         return 0
 
-    def _compute_air_time_reward(self):
-        # Track air time
-        self._track_air_time()
-
-        if self.delta_jump > 0.02:
-            self.n_jumps += 1
-            air_time_reward = self.delta_jump * self.jump_weight + self.n_jumps
-            self.delta_jump = 0  # Reset delta_jump after reward
-            return air_time_reward
-        return 0
-
     def _check_foot_high(self):
         # Calculate foot height
         toe_height = self.robot_states.toe_pos[1, 0]
@@ -337,6 +347,27 @@ class JumpMLFcns:
 
         return reward
 
+    def _compute_air_time_reward(self):
+        """
+        Computes the air-time reward after ensuring a valid jump.
+        Now also ensures the robot reaches a minimum height.
+        """
+        self._track_air_time()  # Ensure air-time is properly tracked
+
+        # Get the highest foot height during the jump
+        foot_max_height = min(self.robot_states.toe_pos[1, 0], self.robot_states.heel_pos[1, 0])
+
+        # Reward only if jump duration exceeds a threshold and height is sufficient
+        if self.delta_jump > self.jump_time_threshold and foot_max_height > self.jump_height_threshold:
+            self.n_jumps += 1  # Count the number of jumps
+            air_time_reward = self.delta_jump * self.jump_weight + self.n_jumps
+            self.delta_x = abs(self.robot_states.b_pos[0, 0] - self.last_b_x)
+        else:
+            air_time_reward = 0  # Ignore micro-hops or low jumps
+
+        self.delta_jump = 0  # Reset jump duration after using it
+        return air_time_reward
+
     def _track_air_time(self):
         """
         Track the air time of the robot based on foot contact (foot_contact_state).
@@ -352,6 +383,53 @@ class JumpMLFcns:
         # End jump timer and calculate delta_jump when foot touches the ground again
         if self.first_landing and (self.foot_contact_state[0, 0] != 0) and self.time_jump != 0:
             self.delta_jump = time.time() - self.time_jump
-            self.delta_x = abs(self.robot_states.b_pos[0, 0] - self.last_b_x)
             self.time_jump = 0
             self.first_landing = False  # Reset for next jump
+
+    def _stagnation_penalty(self):
+        """
+        Penalize the agent if the state AND the control mode remain unchanged for too many steps.
+        Also updates the stagnation metric used in observations.
+        """
+        current_states = np.hstack(
+            (
+                self.robot_states.r_pos.flatten(),
+                self.robot_states.r_vel.flatten(),
+                self.robot_states.th.flatten(),
+                self.robot_states.dth.flatten(),
+                self.robot_states.q.flatten(),
+                self.robot_states.dq.flatten(),
+            )
+        )
+
+        current_mode = self.robot_states.ag_act  # Get current action mode
+
+        # If first iteration, initialize prev_states and prev_mode
+        if self.prev_states is None:
+            self.prev_states = current_states
+            self.prev_mode = current_mode
+            self.stagnation_metric = 0  # Initialize stagnation info
+            return 0  # No penalty at first step
+
+        # Compute state difference
+        delta_states = np.abs(current_states - self.prev_states)
+        mode_unchanged = current_mode == self.prev_mode  # Check if mode remains unchanged
+
+        # Check if the state AND mode have changed
+
+        if np.max(delta_states) < 0.009 and mode_unchanged:
+            self.stagnation_steps += 1
+        else:
+            self.stagnation_steps = 0  # Reset if the state or mode changes
+
+        self.prev_states = current_states  # Update previous state
+        self.prev_mode = current_mode  # Update previous mode
+
+        # Normalize stagnation metric for observation (range 0 to 1)
+        self.stagnation_metric = min(self.stagnation_steps / self.stagnation_threshold, 1.0)
+
+        # Apply penalty if stagnation lasts too long
+        if self.stagnation_steps > self.stagnation_threshold:
+            return -self.stagnation_penalty_weight * (self.stagnation_steps - self.stagnation_threshold)
+        else:
+            return 0

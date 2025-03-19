@@ -31,6 +31,9 @@ Op_Wrapper::Op_Wrapper()
     this->optP8 = new OptProblem8(_JumpRobot);
     this->op[7] = this->optP8;
 
+    this->optP9 = new OptProblem9(_JumpRobot);
+    this->op[8] = this->optP9;
+
     this->qhl.resize(3, 1);
 }
 
@@ -40,10 +43,10 @@ Op_Wrapper::~Op_Wrapper()
 
 void Op_Wrapper::RGCConfig(double _ts, double _Kp, double _Kd)
 {
-    std::cout << "Configurinh the POs" << std::endl;
+    std::cout << "Configuring POs" << std::endl;
     // this->LoadConfig("config/config.yaml");
     // TODO - create a function that reads some loader file (YALM file)
-    std::vector<int> indices = {0, 1, 2, 3, 4, 5, 6, 7}; // All relevant indices
+    std::vector<int> indices = {0, 1, 2, 3, 4, 5, 6, 7, 8}; // All relevant indices
 
     for (int i : indices)
     {
@@ -68,13 +71,13 @@ void Op_Wrapper::LoadConfig(const std::string &filename)
     YAML::Node config = YAML::LoadFile(filename);
 
     // Resize vectors to store 8 elements (indices 0 to 7)
-    Q_matrices.resize(8);
-    R_matrices.resize(8);
-    N_matrices.resize(8);
-    M_matrices.resize(8);
+    Q_matrices.resize(9);
+    R_matrices.resize(9);
+    N_matrices.resize(9);
+    M_matrices.resize(9);
 
     // Load Q and R diagonal values and construct matrices
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 9; i++)
     {
         std::string key = std::to_string(i);
         if (config["PO"][key])
@@ -144,7 +147,7 @@ int Op_Wrapper::ChooseRGCPO(int npo)
     if (this->solver.isInitialized())
     {
 
-        if (npo == 0 || npo == 1 || npo == 2 || npo == 3 || npo == 4 || npo == 7)
+        if (npo == 0 || npo == 1 || npo == 2 || npo == 3 || npo == 4 || npo == 7 || npo == 8)
         {
             // update the states vector |dr, dth, q, g, qa|
             this->x << r_vel, dth, q, r_pos, th, g, qr;
@@ -292,6 +295,8 @@ int Op_Wrapper::SolvePO()
 
         this->QPSolution = this->solver.getSolution();
         this->delta_qr = this->QPSolution.block(0, 0, 3, 1);
+        obj_val = this->solver.getObjValue();
+        // std::cout << obj_val << std::endl;
         return 1;
     }
     else

@@ -20,5 +20,6 @@ PYBIND11_MODULE(pybind_opWrapper, m)
         // .def_readwrite("foot_pos", &Op_Wrapper::foot_pos)
         // .def_readwrite("foot_vel", &Op_Wrapper::foot_vel)
         .def_readwrite("delta_qr", &Op_Wrapper::delta_qr)
-        .def_readwrite("delta_qhl", &Op_Wrapper::qhl);
+        .def_readwrite("delta_qhl", &Op_Wrapper::qhl)
+        .def_readwrite("obj_val", &Op_Wrapper::obj_val);
 }
