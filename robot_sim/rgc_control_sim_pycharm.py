@@ -42,7 +42,7 @@ p.setAdditionalSearchPath(pybullet_data.getDataPath())
 plane = p.loadURDF("plane.urdf", [0, 0, 0], [0, 0, 0, 1])
 p.changeDynamics(plane, -1, lateralFriction=1.0)
 
-model = p.loadURDF(MODEL_PATH, [0, 0, 0], p.getQuaternionFromEuler([0, 0 * np.pi / 180, 0]))
+model = p.loadURDF(MODEL_PATH, [0, 0, 1], p.getQuaternionFromEuler([0, 0 * np.pi / 180, 0]))
 
 number_joints = p.getNumJoints(model)
 
@@ -54,7 +54,7 @@ for idx in range(number_joints - 1):
     # q[5, 0] = 0.6
 # q0 = np.array([0, 0.75, 0, np.pi * 32.5 / 180, np.pi * -60 / 180, np.pi * 32.5 / 180])
 
-q0 = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
+q0 = np.array([0, 0.95, 0, -0.56, 1.06, -0.56])
 
 
 for idx in range(len(JOINT_ST_LIST)):
@@ -90,11 +90,12 @@ t2 = np.zeros((4, 1), dtype=np.float64)
 
 # [t, rw, drw, b, db, th, dth, q, dq]
 max_int = 20000
-x_his = np.zeros((10, max_int))
+x_his = np.zeros((11, max_int))
 q_his = np.zeros((10, max_int))
 
-kp = 180
-kd = np.sqrt(kp)
+kp = 150
+# kd = np.sqrt(kp)
+kd = 10
 
 KP_mtx = kp * np.identity(len(AC_JOINT_LIST))
 KD_mtx = kd * np.identity(len(AC_JOINT_LIST))
@@ -222,6 +223,12 @@ def write_history():
     x_his[4, count] = dth[0, 0]
     x_his[5, count] = th[0, 0]
 
+    x_his[6:9, count] = (t1).reshape(
+        3,
+    )
+
+    x_his[10, count] = th[0, 0] - q[0, 0] - q[1, 0] - q[2, 0]
+
     q_his[0, count] = count * SIM_TIME
 
     q_his[1, count] = q[0, 0]
@@ -246,15 +253,15 @@ while count <= max_int - 1:
     p.stepSimulation()
     count += 1
     if count > 9999 and count < 15000:
-        PO = 2
-    elif count > 15000 and count < 15250:
         PO = 4
-    elif count > 15250 and count < 15500:
-        PO = 6
-    elif count > 15500 and count < 16100:
-        PO = 5
-    elif count > 16100:
-        PO = 2
+    # elif count > 15000 and count < 15250:
+    #     PO = 4
+    # elif count > 15250 and count < 15500:
+    #     PO = 6
+    # elif count > 15500 and count < 16100:
+    #     PO = 5
+    # elif count > 16100:
+    #     PO = 2
     # if count % N_int == 0:
     # if flag:
     #     PO = 2
@@ -270,21 +277,18 @@ t = q_his[0, 1000:]
 data_series = q_his[1:, 1000:]
 
 subplot_groups = [
-    [1, 4, 7],  # Subplot 7: series 11, 12, and 13
-    [2, 5, 8],  # Subplot 7: series 11, 12, and 13
-    [3, 6, 9],  # Subplot 7: series 11, 12, and 13
+    [1, 4],  # Subplot 7: series 11, 12, and 13
+    [2, 5],  # Subplot 7: series 11, 12, and 13
+    [3, 6],  # Subplot 7: series 11, 12, and 13
 ]
 
 series_labels = [
     r"$q$",
     r"$q_{rgc}$",
-    r"$q_{hl}$",
     r"$q$",
     r"$q_{rgc}$",
-    r"$q_{hl}$",
     r"$q$",
     r"$q_{rgc}$",
-    r"$q_{hl}$",
 ]
 
 subplot_titles = [r"$q_{1}$", r"$q_{2}$", r"$q_{3}$"]
@@ -323,6 +327,7 @@ subplot_groups = [
     [3, 4],  # Subplot 7: series 11, 12, and 13
     [5],  # Subplot 7: series 11, 12, and 13
     [6],  # Subplot 8: series 14, 15, and 16
+    [11],
 ]
 
 series_labels = [
@@ -332,13 +337,56 @@ series_labels = [
     r"$b_{x}$",
     r"$\dot{\theta}$",
     r"$\theta$",
+    r"$\theta$",
 ]
 
-subplot_titles = [r"Base lin. vel", r"Base pos", r"Base ang. vel", r"Base ori"]
-subplot_ylabel = ["m/s", "m", "rad/s", "rad"]
+subplot_titles = [r"Base lin. vel", r"Base pos", r"Base ang. vel", r"Base ori", r"foot"]
+subplot_ylabel = ["m/s", "m", "rad/s", "rad", "rad"]
 
 
-fig, axes = plt.subplots(4, 1, figsize=(12, 12), sharex=True)
+fig, axes = plt.subplots(5, 1, figsize=(12, 12), sharex=True)
+axes = axes.flatten()
+
+label_idx = 0
+# Plot each group in its respective subplot
+for idx, (group, title, label) in enumerate(zip(subplot_groups, subplot_titles, subplot_ylabel)):
+    ax = axes[idx]  # Current subplot
+    for series in group:
+        ax.plot(t, data_series[series - 1], linestyle="-", label=f"{series_labels[label_idx]}")
+        label_idx += 1  # Move to the next label
+    ax.set_ylabel(label)
+    ax.set_title(title)  # Set title from the list
+    ax.grid(True)
+    ax.legend()
+
+# Remove unused subplots
+for ax in axes[len(subplot_groups) :]:
+    fig.delaxes(ax)
+
+# Add a shared X-axis label
+plt.xlabel("Time")
+ax.set_xlim(t[0], t[-1])
+# Adjust layout
+plt.tight_layout()
+
+
+subplot_groups = [
+    [7],
+    [8],
+    [9],
+]
+
+series_labels = [
+    r"$\tau_{1}$",
+    r"$\tau_{2}$",
+    r"$\tau_{3}$",
+]
+
+subplot_titles = [r"Joint 1", r"Joint 2", r"Joint 3"]
+subplot_ylabel = ["Nm", "Nm", "Nm"]
+
+
+fig, axes = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
 axes = axes.flatten()
 
 label_idx = 0

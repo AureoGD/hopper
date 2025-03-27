@@ -201,9 +201,9 @@ class JumpModel:
         q = np.zeros((self.JOINT_MODEL_NUM, 1), dtype=np.float64)
         # q = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
         q[1, 0] = 0.95
-        q[3, 0] = 0.56
-        q[4, 0] = -1.06
-        q[5, 0] = 0.56
+        q[3, 0] = -0.56
+        q[4, 0] = 1.06
+        q[5, 0] = -0.44
         # heel = 0
         # toe = 0
         # # Ensure that the feet are not inside the ground
