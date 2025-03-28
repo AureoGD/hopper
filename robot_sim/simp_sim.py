@@ -26,7 +26,7 @@ p.setAdditionalSearchPath(pybullet_data.getDataPath())
 plane = p.loadURDF("plane.urdf", [0, 0, 0], [0, 0, 0, 1])
 p.changeDynamics(plane, -1, lateralFriction=1.0)
 
-model = p.loadURDF(MODEL_PATH, [0, 0, 1.5], [0, 0, 0, 1])
+model = p.loadURDF(MODEL_PATH, [0, 0, 0], [0, 0, 0, 1])
 # model = p.loadURDF(MODEL_PATH, [0, 0, 1], [0, 0, 0, 1])
 number_joints = p.getNumJoints(model)
 
@@ -55,7 +55,7 @@ t1 = np.zeros((3, 1), dtype=np.float64)
 t2 = np.zeros((3, 1), dtype=np.float64)
 
 
-q0 = np.array([0, 0, 0, np.pi * 32.5 / 180, np.pi * -60 / 180, np.pi * 32.5 / 180])
+q0 = np.array([0, 1, 0, np.pi * -32.5 / 180, np.pi * 60 / 180, np.pi * -32.5 / 180])
 for idx in range(len(JOINT_ST_LIST)):
     p.resetJointState(model, JOINT_ST_LIST[idx], q0[idx])
 
@@ -88,7 +88,7 @@ print((mdl.m0 + mdl.m1 + mdl.m2) * 9.81)
 count = 0
 flag = True
 
-kp = 200 * np.identity(3)
+kp = 150 * np.identity(3)
 kd = 2 * np.sqrt(kp) * np.identity(3)
 V_MAX_TAU = 50 * np.ones((3, 1), dtype=np.float64)
 
@@ -277,25 +277,17 @@ while count <= N_int * ch - 1:
     write_history()
     p.stepSimulation()
     count += 1
-    # if count % N_int == 0:
-    #     if flag:
-    #         # qr[0, 0] = np.pi * 45 / 180
-    #         # qr[1, 0] = np.pi * -105 / 180
-    #         # qr[2, 0] = np.pi * 55 / 180
-    #         qr[0, 0] = np.pi * 25 / 180
-    #         qr[1, 0] = np.pi * -60 / 180
-    #         qr[2, 0] = np.pi * 25 / 180
-
-    #         flag = False
-    #     else:
-    #         # qr[0, 0] = np.pi * 50 / 180
-    #         # qr[1, 0] = np.pi * -110 / 180
-    #         # qr[2, 0] = np.pi * 60 / 180
-    #         qr[0, 0] = np.pi * 30 / 180
-    #         qr[1, 0] = np.pi * -50 / 180
-    #         qr[2, 0] = np.pi * 20 / 180
-
-    #         flag = True
+    if count % N_int == 0:
+        if flag:
+            qr[0, 0] = -0.697
+            qr[1, 0] = 2.2
+            qr[2, 0] = -0.8
+            flag = False
+        else:
+            qr[0, 0] = np.pi * -50 / 180
+            qr[1, 0] = np.pi * 60 / 180
+            qr[2, 0] = np.pi * -20 / 180
+            flag = True
     # time.sleep(SIM_TIME)
 
 p.disconnect()

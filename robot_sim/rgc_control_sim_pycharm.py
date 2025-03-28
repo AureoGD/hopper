@@ -32,7 +32,7 @@ MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../model/
 JOINT_ST_LIST = (0, 1, 2, 4, 6, 8)
 AC_JOINT_LIST = (4, 6, 8)
 
-N_int = 10000
+N_int = 15000
 ch = 5
 
 p.connect(p.GUI)
@@ -42,7 +42,7 @@ p.setAdditionalSearchPath(pybullet_data.getDataPath())
 plane = p.loadURDF("plane.urdf", [0, 0, 0], [0, 0, 0, 1])
 p.changeDynamics(plane, -1, lateralFriction=1.0)
 
-model = p.loadURDF(MODEL_PATH, [0, 0, 1], p.getQuaternionFromEuler([0, 0 * np.pi / 180, 0]))
+model = p.loadURDF(MODEL_PATH, [0, 0, 0], p.getQuaternionFromEuler([0, 0 * np.pi / 180, 0]))
 
 number_joints = p.getNumJoints(model)
 
@@ -99,7 +99,7 @@ kd = 10
 
 KP_mtx = kp * np.identity(len(AC_JOINT_LIST))
 KD_mtx = kd * np.identity(len(AC_JOINT_LIST))
-V_MAX_TAU = 50 * np.ones((len(AC_JOINT_LIST), 1), dtype=np.float64)
+V_MAX_TAU = 70 * np.ones((len(AC_JOINT_LIST), 1), dtype=np.float64)
 
 qrh[:, 0] = q0[3:]
 qr[:, 0] = q0[3:]
@@ -218,8 +218,8 @@ def comp_tau():
 def write_history():
     # [t, rw, drw, b, db, th, dth, q, dq]
 
-    x_his[0:2, count] = db[:, 0]
-    x_his[2:4, count] = b[:, 0]
+    x_his[0:2, count] = dr[:, 0]
+    x_his[2:4, count] = rw[:, 0]
     x_his[4, count] = dth[0, 0]
     x_his[5, count] = th[0, 0]
 
@@ -252,8 +252,10 @@ while count <= max_int - 1:
     write_history()
     p.stepSimulation()
     count += 1
-    if count > 9999 and count < 15000:
-        PO = 4
+    if count > 9999 and count < 17000:
+        PO = 5
+    if count >= 17000:
+        PO = 6
     # elif count > 15000 and count < 15250:
     #     PO = 4
     # elif count > 15250 and count < 15500:
@@ -320,6 +322,11 @@ ax.set_xlim(t[0], t[-1])
 # Adjust layout
 plt.tight_layout()
 
+
+print(data_series[0, -1])
+print(data_series[1, -1])
+print(data_series[2, -1])
+
 data_series = x_his[:, 1000:]
 
 subplot_groups = [
@@ -331,16 +338,16 @@ subplot_groups = [
 ]
 
 series_labels = [
-    r"$\dot{b}_{x}$",
-    r"$\dot{b}_{z}$",
-    r"$b_{x}$",
-    r"$b_{x}$",
+    r"$\dot{r}_{x}$",
+    r"$\dot{r}_{z}$",
+    r"$r_{x}$",
+    r"$r_{z}$",
     r"$\dot{\theta}$",
     r"$\theta$",
     r"$\theta$",
 ]
 
-subplot_titles = [r"Base lin. vel", r"Base pos", r"Base ang. vel", r"Base ori", r"foot"]
+subplot_titles = [r"CoM lin. vel", r"CoM pos", r"Base ang. vel", r"Base ori", r"foot"]
 subplot_ylabel = ["m/s", "m", "rad/s", "rad", "rad"]
 
 

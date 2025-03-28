@@ -7,32 +7,32 @@ Op_Wrapper::Op_Wrapper()
 
     this->_JumpRobot = new ModelMatrices();
 
+    this->optP0 = new OptProblem0(_JumpRobot);
+    this->op[0] = this->optP0;
+
     this->optP1 = new OptProblem1(_JumpRobot);
-    this->op[0] = this->optP1;
+    this->op[1] = this->optP1;
 
     this->optP2 = new OptProblem2(_JumpRobot);
-    this->op[1] = this->optP2;
+    this->op[2] = this->optP2;
 
     this->optP3 = new OptProblem3(_JumpRobot);
-    this->op[2] = this->optP3;
+    this->op[3] = this->optP3;
 
     this->optP4 = new OptProblem4(_JumpRobot);
-    this->op[3] = this->optP4;
+    this->op[4] = this->optP4;
 
     this->optP5 = new OptProblem5(_JumpRobot);
-    this->op[4] = this->optP5;
+    this->op[5] = this->optP5;
 
     this->optP6 = new OptProblem6(_JumpRobot);
-    this->op[5] = this->optP6;
+    this->op[6] = this->optP6;
 
     this->optP7 = new OptProblem7(_JumpRobot);
-    this->op[6] = this->optP7;
+    this->op[7] = this->optP7;
 
-    this->optP8 = new OptProblem8(_JumpRobot);
-    this->op[7] = this->optP8;
-
-    this->optP9 = new OptProblem9(_JumpRobot);
-    this->op[8] = this->optP9;
+    // this->optP9 = new OptProblem9(_JumpRobot);
+    // this->op[8] = this->optP9;
 
     this->qhl.resize(3, 1);
 }
@@ -44,9 +44,8 @@ Op_Wrapper::~Op_Wrapper()
 void Op_Wrapper::RGCConfig(double _ts, double _Kp, double _Kd)
 {
     std::cout << "Configuring POs" << std::endl;
-    // this->LoadConfig("config/config.yaml");
-    // TODO - create a function that reads some loader file (YALM file)
-    std::vector<int> indices = {0, 1, 2, 3, 4, 5, 6, 7, 8}; // All relevant indices
+
+    std::vector<int> indices = {0, 1, 2, 3, 4, 5, 6, 7}; // All relevant indices
 
     for (int i : indices)
     {
@@ -146,22 +145,31 @@ int Op_Wrapper::ChooseRGCPO(int npo)
 
     if (this->solver.isInitialized())
     {
-
-        if (npo == 0 || npo == 1 || npo == 2 || npo == 3 || npo == 4 || npo == 7 || npo == 8)
+        if (npo == 0 || npo == 1 || npo == 3 || npo == 5 || npo == 6 || npo == 7)
         {
             // update the states vector |dr, dth, q, g, qa|
             this->x << r_vel, dth, q, r_pos, th, g, qr;
         }
 
-        if (npo == 5 || npo == 6)
+        if (npo == 2 || npo == 4)
         {
             // update the states vector |dq q dth th r qra|
             this->x << this->qd, this->q, dth, th, r_pos, this->qr;
         }
 
-        this->qhl = this->op[npo]->qhl;
+        // if (npo == 4)
+        // {
+
+        //     auto psi = this->q(0, 0) + this->q(1, 0) + this->q(2, 0) + th / 2;
+        //     // update the states vector |dq q dth th r qra|
+        //     this->x << this->qd, this->q, dth, th, r_pos, psi, this->qr;
+        // }
+
+        // this->qhl = this->op[npo]->qhl;
         this->op[npo]->UpdateStates(this->x);
+
         this->op[npo]->UpdateOptimizationProblem(this->H, this->F, this->Ain, this->Lb, this->Ub);
+
         int solve_status = this->SolvePO();
         if (solve_status == 1)
         {

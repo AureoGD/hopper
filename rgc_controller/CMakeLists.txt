@@ -28,6 +28,7 @@ add_library(${PROJECT_NAME}
     src/model_matrices.cpp
     src/opt_problem.cpp
     src/pred_control.cpp
+    src/opt_problem0.cpp
     src/opt_problem1.cpp
     src/opt_problem2.cpp
     src/opt_problem3.cpp
@@ -35,8 +36,8 @@ add_library(${PROJECT_NAME}
     src/opt_problem5.cpp
     src/opt_problem6.cpp
     src/opt_problem7.cpp
-    src/opt_problem8.cpp
-    src/opt_problem9.cpp
+    # src/opt_problem8.cpp
+    # src/opt_problem9.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

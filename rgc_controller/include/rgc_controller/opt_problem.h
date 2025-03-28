@@ -11,11 +11,9 @@ public:
 
     virtual void UpdateModelConstants() = 0;
 
-    virtual void UpdateReferences();
-
     virtual void UpdateReferences(Eigen::VectorXd ref);
 
-    Eigen::VectorXd qhl;
+    Eigen::VectorXd ref;
 
     double ts, Kp, Kd;
 };

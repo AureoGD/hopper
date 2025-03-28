@@ -32,21 +32,27 @@ JOINT_ST_LIST = (0, 1, 2, 4, 6, 8)
 md = model_matrices.ModelMatrices()
 
 # Joint positions (converted to radians)
-joint_obj = (
-    np.array(
-        [
-            [-32.5, 60, -25],
-            [-70, 110, -40],
-            [-30, 120, -45],
-            [-32, 60, -10],
-            [-70, 120, -50],
-            # [-70, 120, -30],
-            # [-32.5, 40, 20],
-            # [-50, 90, -30],
-        ]
-    )
-    * np.pi
-    / 180
+# joint_obj = (
+#     np.array(
+#         [
+#             [-32.5, 60, -25],
+#             [-70, 110, -40],
+#             [-30, 120, -45],
+#             [-32, 60, -10],
+#             [-70, 120, -50],
+#             # [-70, 120, -30],
+#             # [-32.5, 40, 20],
+#             # [-50, 90, -30],
+#         ]
+#     )
+#     * np.pi
+#     / 180
+# )
+
+joint_obj = np.array(
+    [
+        [-0.697, 2.2, -0.8],
+    ]
 )
 
 # Adjust the camera: xz plane, y pointing inside the screen

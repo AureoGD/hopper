@@ -89,11 +89,6 @@ class JumpModel:
 
         self.rw_ant = np.zeros((2, 1), dtype=np.float64)
 
-        # Joint limits for initialization
-        # Format: [bx, bz, th, q1, q2, q3]
-        # self.joint_p_max = [0, 1.15, 0, 1.20, 0.5, 1.1]
-        # self.joint_p_min = [0, 0.95, 0, -0.50, -2.2, -1.1]
-
         self.joint_p_max = [0, 1.15, 0, 0.75, 0.45, 1]
         self.joint_p_min = [0, 0.95, 0, -0.75, -2.0, -1]
 
@@ -101,37 +96,19 @@ class JumpModel:
         self.flag_first_int = False
         self.ac_step = 0
 
-    def new_action(self, action):
-        #  In this function, the RGC will be called to solve for new qr
-        self.robot_states.ag_act = action
-        # | q, dq, qr[:, 0], dr, rw, db, b, dth[0, 0], th[0, 0]|
-        self.RGC.UpdateSt(
-            self.robot_states.q,
-            self.robot_states.dq,
-            self.robot_states.qr,
-            self.robot_states.r_vel,
-            self.robot_states.r_pos,
-            self.robot_states.b_vel,
-            self.robot_states.b_pos,
-            self.robot_states.dth[0, 0],
-            self.robot_states.th[0, 0],
-        )
+    def set_genes(self, genes):
+        self.genes = genes
+        # Parse the genes into meaningful values like t1, t2, alpha, beta, etc.
+        self.t1 = genes[0]
+        self.t2 = genes[1]
+        self.alpha1 = genes[2]
+        self.beta1 = genes[3]
 
-        rgc_return = self.RGC.ChooseRGCPO(action)
-        # print(rgc_return)
-        # self.robot_states.rcg_status[0, 0] = float(rgc_return)
-        # self.robot_states.qrh = (self.RGC.delta_qhl).reshape(3, 1)
-
-        if rgc_return == 1:
-            delta_qr = self.RGC.delta_qr.reshape(3, 1)
-            self.robot_states.rcg_status = 1
-            if np.any(np.isnan(delta_qr)):
-                self.robot_states.rcg_status = 0
-            else:
-                self.robot_states.qr[:, 0] = self.robot_states.qr[:, 0] + delta_qr[:, 0]
-                self.robot_states.j_val[0, 0] = self.RGC.obj_val
-        else:
-            self.robot_states.rcg_status = -1
+    def update_qr_with_genes(self, t):
+        if self.t1 < t < self.t2:
+            self.robot_states.qr = self.alpha1 * self.qr1 + self.beta1 * self.qr2
+        elif t > self.t2:
+            self.robot_states.qr = self.alpha2 * self.qr2 + self.beta2 * self.qr3
 
     def command_torque(self):
         tau_pd = self._torque_pd()
@@ -198,24 +175,12 @@ class JumpModel:
 
     def randon_joint_pos(self):
         # Create a array for joint positions
-        # q = [dx. bz. th, q1, q2, q3]
         q = np.zeros((self.JOINT_MODEL_NUM, 1), dtype=np.float64)
-        # q = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
+
         q[1, 0] = 0.95
         q[3, 0] = -0.56
         q[4, 0] = 1.06
         q[5, 0] = -0.44
-        # heel = 0
-        # toe = 0
-        # # Ensure that the feet are not inside the ground
-        # while heel < 0.05 and toe < 0.05:
-        #     # Generate random joint positions
-        #     for index in range(self.JOINT_MODEL_NUM):
-        #         q[index] = random.uniform(self.joint_p_min[index], self.joint_p_max[index])
-        #     cos_vals = np.cos([q[3, 0], q[3, 0] + q[4, 0], q[3, 0] + q[4, 0] + q[5, 0]])
-        #     sin_vals = np.sin([q[3, 0], q[3, 0] + q[4, 0], q[3, 0] + q[4, 0] + q[5, 0]])
-        #     toe = q[1, 0] + 0.26 * sin_vals[2] - 0.05 * cos_vals[2] - 0.45 * cos_vals[0] - 0.5 * cos_vals[1]
-        #     heel = q[1, 0] - 0.13 * sin_vals[2] - 0.05 * cos_vals[2] - 0.45 * cos_vals[0] - 0.5 * cos_vals[1]
 
         # ensure drw as zero in the first interation
         self.rw_ant[:] = 0

@@ -16,15 +16,7 @@ void OptProblem::UpdateModelConstants()
 {
 }
 
-void OptProblem::UpdateReferences()
-{
-    this->SetReference(this->qhl);
-}
-
 void OptProblem::UpdateReferences(Eigen::VectorXd ref)
 {
-    Eigen::VectorXd new_ref;
-    new_ref.resize(this->qhl.rows() + ref.rows());
-    new_ref << this->qhl, ref;
-    this->SetReference(new_ref);
+    this->SetReference(ref);
 }

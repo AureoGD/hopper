@@ -197,21 +197,21 @@ class JumpMLFcns:
         return reward
 
     def _done(self):
-        if self.episode_reward <= self.min_reward:
-            return True
+        # if self.episode_reward <= self.min_reward:
+        #     return True
 
-        if self.robot_states.toe_pos[1, 0] < -0.025:
-            return True
+        # if self.robot_states.toe_pos[1, 0] < -0.025:
+        #     return True
 
-        if self.robot_states.heel_pos[1, 0] < -0.025:
-            return True
+        # if self.robot_states.heel_pos[1, 0] < -0.025:
+        #     return True
 
-        # check if the base postion in Z direction is near the ground
-        if self.robot_states.b_pos[1, 0] < 0.35:
-            return True
+        # # check if the base postion in Z direction is near the ground
+        # if self.robot_states.b_pos[1, 0] < 0.35:
+        #     return True
 
-        if (self.n_jumps + 1) * self.max_inter <= self.inter:
-            return True
+        # if (self.n_jumps + 1) * self.max_inter <= self.inter:
+        #     return True
 
         # otherwise continue
         return False

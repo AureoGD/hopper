@@ -66,10 +66,12 @@ ModelMatrices::ModelMatrices()
 
     Rot_mtx(1, 1) = 1;
 
-    this->qU << 1.40, 0.5, 1.1;
-    this->qL << -0.50, -2.2, -1.1;
+    this->qL << -1.40, -0.5, -1.1;
+    this->qU << 0.50, 2.2, 1.1;
 
     J_com_ptr = {&J_com1, &J_com2, &J_com3};
+
+    tau_lim << 50, 50, 50;
 }
 
 // Destructor

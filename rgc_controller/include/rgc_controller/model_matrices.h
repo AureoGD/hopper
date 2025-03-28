@@ -68,7 +68,7 @@ public:
     // Precomputed sine and cosine values
     Eigen::Vector3d sin_vals, cos_vals;
 
-    Eigen::Matrix<double, 3, 1> qU, qL;
+    Eigen::Matrix<double, 3, 1> qU, qL, tau_lim;
     Eigen::Matrix<double, 1, 3> Iq;
     Eigen::Matrix<double, 2, 1> b, db;
 

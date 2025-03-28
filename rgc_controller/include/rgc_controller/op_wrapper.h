@@ -3,6 +3,7 @@
 
 #include "rgc_controller/pred_control.h"
 #include "rgc_controller/opt_problem.h"
+#include "rgc_controller/opt_problem0.h"
 #include "rgc_controller/opt_problem1.h"
 #include "rgc_controller/opt_problem2.h"
 #include "rgc_controller/opt_problem3.h"
@@ -10,8 +11,8 @@
 #include "rgc_controller/opt_problem5.h"
 #include "rgc_controller/opt_problem6.h"
 #include "rgc_controller/opt_problem7.h"
-#include "rgc_controller/opt_problem8.h"
-#include "rgc_controller/opt_problem9.h"
+// #include "rgc_controller/opt_problem8.h"
+// #include "rgc_controller/opt_problem9.h"
 
 #include "rgc_controller/model_matrices.h"
 
@@ -68,6 +69,7 @@ private:
 
     void ClearPO();
 
+    OptProblem0 *optP0;
     OptProblem1 *optP1;
     OptProblem2 *optP2;
     OptProblem3 *optP3;
@@ -75,8 +77,8 @@ private:
     OptProblem5 *optP5;
     OptProblem6 *optP6;
     OptProblem7 *optP7;
-    OptProblem8 *optP8;
-    OptProblem9 *optP9;
+    // OptProblem8 *optP8;
+    // OptProblem9 *optP9;
 
     ModelMatrices *_JumpRobot;
 

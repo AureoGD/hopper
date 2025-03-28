@@ -86,5 +86,6 @@
     "span": "cpp",
     "codecvt": "cpp"
   },
-  "C_Cpp.errorSquiggles": "disabled"
+  "C_Cpp.errorSquiggles": "disabled",
+  "cmake.sourceDirectory": "/home/agd/hopper_pb/rgc_controller"
 }

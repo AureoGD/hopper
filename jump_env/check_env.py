@@ -19,12 +19,18 @@ for episode in range(episodes):
         obs, reward, done, truncated, info = env.step(mode)
         inter += 1
         if inter > 50 and inter < 300:
-            mode = 0
-        # if inter > 300 and inter < 550:
-        #     mode = 4
-        # elif inter > 550 and inter < 800:
-        #     mode = 6
-        # elif inter > 800 and inter < 1400:
-        #     mode = 5
-        # elif inter > 1400:
-        #     mode = 2
+            mode = 1
+        if inter > 300 and inter < 1000:
+            mode = 5
+        if inter >= 1000 and inter < 1050:
+            mode = 6
+        if inter >= 1050:
+            mode = 2
+# if inter > 300 and inter < 550:
+#     mode = 4
+# elif inter > 550 and inter < 800:
+#     mode = 6
+# elif inter > 800 and inter < 1400:
+#     mode = 5
+# elif inter > 1400:
+#     mode = 2
