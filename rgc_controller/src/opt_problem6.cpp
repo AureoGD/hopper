@@ -64,8 +64,8 @@ void OptProblem6::UpdateModelConstants()
     this->A.block(6, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
     // this->Ca.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
-    this->Ca(0, 6) = 1;
-    this->Ca(1, 7) = 1;
+    this->Ca(0, 6) = 1; // rx
+    this->Ca(1, 7) = 1; // ry
     // this->Ca(0, 1) = 1.0;
 
     this->Aa.block(10, 10, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
@@ -177,7 +177,7 @@ void OptProblem6::UpdateDynamicModel()
     Ba.block(0, 0, 10, 3) = ts * B;
 
     // Update the constraint model
-    this->C_cons.block(3, 0, 3, 3) = -Kd * T0;
+    this->C_cons.block(4, 0, 3, 3) = -Kd * T0;
 }
 
 void OptProblem6::DefineConstraintMtxs()

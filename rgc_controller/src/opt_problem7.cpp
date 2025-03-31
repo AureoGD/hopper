@@ -68,8 +68,8 @@ void OptProblem7::UpdateModelConstants()
     this->A.block(6, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
     // this->Ca.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
-    this->Ca(0, 7) = 1;
-    this->Ca(0, 8) = 0.4;
+    this->Ca(0, 7) = 1; // rx
+    this->Ca(0, 8) = 1; // th
 
     this->Aa.block(10, 10, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
     this->Ba.block(10, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
@@ -119,7 +119,7 @@ void OptProblem7::UpdateModelConstants()
     Ub << RobotMtx->qU, 0, OsqpEigen::INFTY, -g * 2.5 * RobotMtx->m, 0, OsqpEigen::INFTY, -g * 2.5 * RobotMtx->m;
 
     Lb.resize(9, 1);
-    Lb << RobotMtx->qL, -OsqpEigen::INFTY, 0, -g * 1.5 * RobotMtx->m, -OsqpEigen::INFTY, 0, -g * 1.5 * RobotMtx->m;
+    Lb << RobotMtx->qL, -OsqpEigen::INFTY, 0, -g * 0.5 * RobotMtx->m, -OsqpEigen::INFTY, 0, -g * 0.5 * RobotMtx->m;
     this->ref(0, 0) = 1.5;
     this->UpdateReferences(this->ref);
     this->SetConsBounds(Lb, Ub);
