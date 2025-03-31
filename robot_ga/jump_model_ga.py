@@ -9,11 +9,6 @@ from dataclasses import dataclass, field
 import time
 
 current_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_path + "/../rgc_controller/build")
-rgc_controller_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../rgc_controller/config/config.yaml"))
-
-
-import pybind_opWrapper
 
 sys.path.append("./model")
 import model_matrices
@@ -69,20 +64,16 @@ class JumpModel:
 
         # Time steps
         self.sim_dt = 0.001  # Simulation time step
-        self.rgc_dt = 0.01  # Robot controller time step
+        self.qr_dt = 0.01  # Robot controller time step
 
         # Joint control variables
         self.kp = 150
-        self.kd = 2 * sqrt(self.Kp)
+        self.kd = 2 * sqrt(self.kp)
         self.Kp = self.kp * np.identity(len(self.AC_JOINT_LIST))
         self.Kd = self.kd * np.identity(len(self.AC_JOINT_LIST))
         self.MAX_TAU = 50
         self.V_MAX_TAU = self.MAX_TAU * np.ones((len(self.AC_JOINT_LIST), 1))
 
-        # RGC variables and objects
-        self.RGC = pybind_opWrapper.Op_Wrapper()
-        self.RGC.load_config(rgc_controller_path)
-        self.RGC.RGCConfig(self.rgc_dt, self.kp, self.kd)
 
         # Robot states variables
         self.robot_states = _robot_states
@@ -96,19 +87,41 @@ class JumpModel:
         self.flag_first_int = False
         self.ac_step = 0
 
-    def set_genes(self, genes):
-        self.genes = genes
-        # Parse the genes into meaningful values like t1, t2, alpha, beta, etc.
-        self.t1 = genes[0]
-        self.t2 = genes[1]
-        self.alpha1 = genes[2]
-        self.beta1 = genes[3]
+        # GA variables
+        self.alpha = []
+        self.k = []
+        self.T_switch = []
+        self.mode = 0
+        self.qr_ant = np.zeros((3, 1))
+        self.qr_targets = [
+            np.array([[-70], [110], [-40]])*np.pi/180,  # qr1
+            np.array([[-32], [60], [-10]])*np.pi/180,  # qr2
+            np.array([[-70], [120], [-50]])*np.pi/180,# qr3
+            np.array([[-32.5], [60], [-25]])*np.pi/180   # qr4
+        ]
 
-    def update_qr_with_genes(self, t):
-        if self.t1 < t < self.t2:
-            self.robot_states.qr = self.alpha1 * self.qr1 + self.beta1 * self.qr2
-        elif t > self.t2:
-            self.robot_states.qr = self.alpha2 * self.qr2 + self.beta2 * self.qr3
+    def set_genes(self, genes):
+        self.T_switch = genes[0:3]
+
+        Ts_list = genes[3:7]
+        self.alpha = [np.exp(-0.01 * 0.35 * 2 * np.pi / Ts) for Ts in Ts_list]
+        self.k = [1.0 - a for a in self.alpha]
+
+    def update_qr(self, t):
+        T1, T2, T3 = self.T_switch
+        if t < T1:
+            mode = 0
+        elif t < T1 + T2:
+            mode = 1
+        elif t < T1 + T2 + T3:
+            mode = 2
+        else:
+            mode = 3
+
+        # Apply corresponding filter
+        qr_target = self.qr_targets[mode]
+        self.robot_states.qr = self.alpha[mode] * self.qr_ant + self.k[mode] * qr_target
+        self.qr_ant = np.copy(self.robot_states.qr)
 
     def command_torque(self):
         tau_pd = self._torque_pd()
@@ -177,10 +190,10 @@ class JumpModel:
         # Create a array for joint positions
         q = np.zeros((self.JOINT_MODEL_NUM, 1), dtype=np.float64)
 
-        q[1, 0] = 0.95
-        q[3, 0] = -0.56
-        q[4, 0] = 1.06
-        q[5, 0] = -0.44
+        q[1, 0] = 0.9
+        q[3, 0] =  np.pi * -32.5 / 180
+        q[4, 0] =  np.pi * 60 / 180 
+        q[5, 0] = np.pi * -32.5 / 180
 
         # ensure drw as zero in the first interation
         self.rw_ant[:] = 0
@@ -230,7 +243,6 @@ class JumpModel:
 
     def reset_variables(self):
         self.ac_step = 0
-        self.RGC.ResetPO()
         self.flag_first_int = False
 
     def init_qr(self, _q):
