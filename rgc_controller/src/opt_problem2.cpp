@@ -57,7 +57,8 @@ void OptProblem2::UpdateModelConstants()
 
     // 60 -100 50
 
-    this->ref << -60, 100, -40;
+    // this->ref << -60, 100, -40;
+    this->ref << 78, -120, 50;
     this->ref = this->ref * PI / 180;
     // Initialize matrices constants
 

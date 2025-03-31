@@ -18,19 +18,11 @@ for episode in range(episodes):
         # action = env.action_space.sample()
         obs, reward, done, truncated, info = env.step(mode)
         inter += 1
-        if inter > 50 and inter < 300:
-            mode = 1
-        if inter > 300 and inter < 1000:
+        if inter > 50 and inter < 500:
+            mode = 0
+        if inter > 500 and inter < 900:
             mode = 5
-        if inter >= 1000 and inter < 1050:
+        if inter >= 900 and inter < 950:
             mode = 7
-        if inter >= 1050:
+        if inter >= 950:
             mode = 2
-# if inter > 300 and inter < 550:
-#     mode = 4
-# elif inter > 550 and inter < 800:
-#     mode = 6
-# elif inter > 800 and inter < 1400:
-#     mode = 5
-# elif inter > 1400:
-#     mode = 2

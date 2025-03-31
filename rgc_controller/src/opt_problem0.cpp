@@ -60,7 +60,7 @@ void OptProblem0::UpdateModelConstants()
  */
     // This problem chnange the robot posture to make the orietation of the robot parallel
     // to the ground and maing the angular velcoity equal zero. Therefor ref = [0;0], the same valu of the inicialization
-
+    this->ref(0, 0) = 0.1;
     this->UpdateReferences(this->ref);
 
     // Initialize matrices constants

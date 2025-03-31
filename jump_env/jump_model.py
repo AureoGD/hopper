@@ -76,7 +76,7 @@ class JumpModel:
         self.kd = 10
         self.Kp = self.kp * np.identity(len(self.AC_JOINT_LIST))
         self.Kd = self.kd * np.identity(len(self.AC_JOINT_LIST))
-        self.MAX_TAU = 50
+        self.MAX_TAU = 70
         self.V_MAX_TAU = self.MAX_TAU * np.ones((len(self.AC_JOINT_LIST), 1))
 
         # RGC variables and objects
@@ -93,6 +93,9 @@ class JumpModel:
         # Format: [bx, bz, th, q1, q2, q3]
         # self.joint_p_max = [0, 1.15, 0, 1.20, 0.5, 1.1]
         # self.joint_p_min = [0, 0.95, 0, -0.50, -2.2, -1.1]
+
+        # self.joint_p_max = [0, 1.15, 0, 0.75, 0.45, 1]
+        # self.joint_p_min = [0, 0.95, 0, -0.75, -2.0, -1]
 
         self.joint_p_max = [0, 1.15, 0, 0.75, 0.45, 1]
         self.joint_p_min = [0, 0.95, 0, -0.75, -2.0, -1]
@@ -202,9 +205,14 @@ class JumpModel:
         q = np.zeros((self.JOINT_MODEL_NUM, 1), dtype=np.float64)
         # q = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
         q[1, 0] = 0.95
-        q[3, 0] = -0.56
-        q[4, 0] = 1.06
-        q[5, 0] = -0.44
+        # q[3, 0] = -0.56
+        # q[4, 0] = 1.06
+        # q[5, 0] = -0.44
+
+        q[3, 0] = 0.45
+        q[4, 0] = -1.1
+        q[5, 0] = 0.70
+
         # heel = 0
         # toe = 0
         # # Ensure that the feet are not inside the ground
