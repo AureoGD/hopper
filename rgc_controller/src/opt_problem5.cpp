@@ -15,7 +15,7 @@ OptProblem5::OptProblem5(ModelMatrices *Robot) : RobotMtx(Robot)
     this->Ba.resize(13, 3);
     this->Ba.setZero();
 
-    this->Ca.resize(1, 13);
+    this->Ca.resize(2, 13);
     this->Ca.setZero();
 
     // q, rx, th, grf_toe, grf_heel
@@ -66,7 +66,7 @@ void OptProblem5::UpdateModelConstants()
     this->A.block(6, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
     this->Ca(0, 7) = 1;
-    // this->Ca(1, 8) = 1;
+    this->Ca(1, 8) = 1;
 
     this->Aa.block(10, 10, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
     this->Ba.block(10, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);

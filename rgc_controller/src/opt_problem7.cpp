@@ -15,7 +15,7 @@ OptProblem7::OptProblem7(ModelMatrices *Robot) : RobotMtx(Robot)
     this->Ba.resize(13, 3);
     this->Ba.setZero();
 
-    this->Ca.resize(1, 13);
+    this->Ca.resize(2, 13);
     this->Ca.setZero();
 
     // q, grf_toe, grf_heel
@@ -69,6 +69,7 @@ void OptProblem7::UpdateModelConstants()
 
     // this->Ca.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
     this->Ca(0, 7) = 1;
+    this->Ca(0, 8) = 0.4;
 
     this->Aa.block(10, 10, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
     this->Ba.block(10, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
@@ -119,7 +120,7 @@ void OptProblem7::UpdateModelConstants()
 
     Lb.resize(9, 1);
     Lb << RobotMtx->qL, -OsqpEigen::INFTY, 0, -g * 1.5 * RobotMtx->m, -OsqpEigen::INFTY, 0, -g * 1.5 * RobotMtx->m;
-    this->ref(0, 0) = 0.8;
+    this->ref(0, 0) = 1.5;
     this->UpdateReferences(this->ref);
     this->SetConsBounds(Lb, Ub);
 }

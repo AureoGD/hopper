@@ -73,7 +73,7 @@ class JumpModel:
 
         # Joint control variables
         self.kp = 150
-        self.kd = 2 * sqrt(self.Kp)
+        self.kd = 10
         self.Kp = self.kp * np.identity(len(self.AC_JOINT_LIST))
         self.Kd = self.kd * np.identity(len(self.AC_JOINT_LIST))
         self.MAX_TAU = 50

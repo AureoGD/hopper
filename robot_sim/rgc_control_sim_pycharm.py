@@ -94,8 +94,8 @@ x_his = np.zeros((11, max_int))
 q_his = np.zeros((10, max_int))
 
 kp = 150
-# kd = np.sqrt(kp)
 kd = 10
+# kd = 10
 
 KP_mtx = kp * np.identity(len(AC_JOINT_LIST))
 KD_mtx = kd * np.identity(len(AC_JOINT_LIST))
@@ -255,7 +255,7 @@ while count <= max_int - 1:
     if count > 9999 and count < 17000:
         PO = 5
     if count >= 17000:
-        PO = 6
+        PO = 7
     # elif count > 15000 and count < 15250:
     #     PO = 4
     # elif count > 15250 and count < 15500:
