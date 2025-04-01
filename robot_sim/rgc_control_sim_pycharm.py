@@ -54,8 +54,11 @@ for idx in range(number_joints - 1):
     # q[5, 0] = 0.6
 # q0 = np.array([0, 0.75, 0, np.pi * 32.5 / 180, np.pi * -60 / 180, np.pi * 32.5 / 180])
 
-# q0 = np.array([0, 0.95, 0, -0.56, 1.06, -0.56])
-q0 = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
+# back knee
+q0 = np.array([0, 0.95, 0, -0.56, 1.06, -0.56])
+
+# front knee
+# q0 = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
 
 
 for idx in range(len(JOINT_ST_LIST)):
@@ -256,7 +259,7 @@ while count <= max_int - 1:
     if count > 9999 and count < 17000:
         PO = 5
     if count >= 17000:
-        PO = 6
+        PO = 7
     # elif count > 15000 and count < 15250:
     #     PO = 4
     # elif count > 15250 and count < 15500:

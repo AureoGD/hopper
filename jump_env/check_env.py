@@ -23,6 +23,6 @@ for episode in range(episodes):
         if inter > 500 and inter < 900:
             mode = 5
         if inter >= 900 and inter < 1000:
-            mode = 6
+            mode = 7
         if inter >= 1000:
             mode = 2
