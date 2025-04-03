@@ -6,3 +6,4 @@ robot_sim/__pycache__
 model/__pycache__
 jump_env/__pycache__
 jump_ga/logs
+tb_logs
