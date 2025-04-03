@@ -11,8 +11,6 @@
 #include "rgc_controller/opt_problem5.h"
 #include "rgc_controller/opt_problem6.h"
 #include "rgc_controller/opt_problem7.h"
-#include "rgc_controller/opt_problem8.h"
-// #include "rgc_controller/opt_problem9.h"
 
 #include "rgc_controller/model_matrices.h"
 
@@ -77,12 +75,10 @@ private:
     OptProblem5 *optP5;
     OptProblem6 *optP6;
     OptProblem7 *optP7;
-    OptProblem8 *optP8;
-    // OptProblem9 *optP9;
 
     ModelMatrices *_JumpRobot;
 
-    OptProblem *op[9];
+    OptProblem *op[8];
 
     int last_op = -1;
 

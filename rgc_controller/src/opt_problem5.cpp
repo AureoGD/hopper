@@ -14,12 +14,12 @@ OptProblem5::OptProblem5(ModelMatrices *Robot) : RobotMtx(Robot)
 
     this->Ba.resize(13, 3);
     this->Ba.setZero();
-
     this->Ca.resize(2, 13);
     this->Ca.setZero();
 
-    // q, rx, th, grf_toe, grf_heel
-    this->C_cons.resize(11, 13);
+    // q, tau
+    this->C_cons.resize(6, 13);
+
     this->C_cons.setZero();
 
     this->C_consV.resize(this->C_cons.rows(), 1);
@@ -53,20 +53,20 @@ void OptProblem5::UpdateModelConstants()
     Aa = | Ad  Bd|  Ba = | Bd|
          | 0   I |       | I |
 
-    Ca = |0 I 0 0 0| y = |dth; th|
- */
-    // This problem chnange the robot posture to make the orietation of the robot parallel
-    // to the ground and maing the angular velcoity equal zero. Therefor ref = [0;0], the same valu of the inicialization
-
-    this->UpdateReferences(this->ref);
+    Ca = |0 I 0 0 0| y = |q|
+*/
+    // this->ref << 20, -15, 20;
+    // this->ref = this->ref * PI / 180;
 
     // Initialize matrices constants
 
     this->A(1, 9) = 1.0;
     this->A.block(6, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
+    // this->Ca.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
     this->Ca(0, 7) = 1;
     this->Ca(1, 8) = 1;
+    // this->Ca(0, 1) = 1.0;
 
     this->Aa.block(10, 10, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
     this->Ba.block(10, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
@@ -80,52 +80,20 @@ void OptProblem5::UpdateModelConstants()
 
     // Initializa constraints matrix
 
-    // q  = |0 I   0   0 0|
-    // rx = |0 0 |1,0| 0 0|
-
-    // tau =  |-kd*T0 -ḱp 0 0 kp| + kp*dqr
-    // f = J^-T*tau
-    // Friction cone: GRF_mtx * f
-
-    // joint pos constraint
     this->C_cons.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
-
-    // rx pos constraint
-    this->C_cons(3, 6) = 1;
-
-    // once rx must be inside rx_heel and rx_toe, the value must be update in the constraint problem
-    this->C_consV(3, 0) = 1;
-
-    this->C_cons(4, 8) = 1;
-
-    this->C_cons.block(5, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
-    this->C_cons.block(5, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
-
-    this->C_cons.block(8, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
-    this->C_cons.block(8, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
-
-    // this->C_cons.block(3, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
-    // this->C_cons.block(3, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
-
-    this->n1 << 0, 1, 0;
-    this->t1 << 1, 0, 0;
-
-    double a_coef = 0.9 / sqrt(2);
-    this->GRF_mtx.resize(3, 3);
-
-    this->GRF_mtx << (-a_coef * this->n1 + this->t1).transpose(),
-        (a_coef * this->n1 + this->t1).transpose(),
-        this->n1.transpose();
+    this->C_cons.block(3, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
+    this->C_cons.block(3, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
 
     Eigen::MatrixXd Ub, Lb;
-    double g = -9.81;
 
     Ub.resize(this->C_cons.rows(), 1);
-    Ub << RobotMtx->qU, 0, 0.4, 0, OsqpEigen::INFTY, -g * 2.5 * RobotMtx->m, 0, OsqpEigen::INFTY, -g * 2.5 * RobotMtx->m;
-
+    Ub << RobotMtx->qU, RobotMtx->tau_lim;
     Lb.resize(this->C_cons.rows(), 1);
-    Lb << RobotMtx->qL, 0, -0.4, -OsqpEigen::INFTY, 0, -g * 0.5 * RobotMtx->m, -OsqpEigen::INFTY, 0, -g * 0.5 * RobotMtx->m;
-
+    Lb << RobotMtx->qL, -RobotMtx->tau_lim;
+    // this->ref(0, 0) = 0;
+    this->ref(0, 0) = 2;
+    this->ref(1, 0) = 0.3;
+    this->UpdateReferences(this->ref);
     this->SetConsBounds(Lb, Ub);
 }
 
@@ -153,14 +121,14 @@ void OptProblem5::UpdateDynamicModel()
 
     auto roty = RobotMtx->Rot_mtx;
 
-    auto Jc = roty * RobotMtx->J_ankle;
+    auto Jc = roty * RobotMtx->J_toe;
     RobotMtx->CoMJacobian();
     RobotMtx->CoMPos();
 
     auto Jcom = roty * RobotMtx->J_com;
     auto r_ = roty * RobotMtx->CoM;
 
-    auto pc = roty * RobotMtx->HT_ankle.block(0, 3, 3, 1);
+    auto pc = roty * RobotMtx->HT_toe.block(0, 3, 3, 1);
 
     auto r_pc = pc - r_; // ok
 
@@ -173,7 +141,8 @@ void OptProblem5::UpdateDynamicModel()
 
     Eigen::Matrix3d alpha;
     alpha << 1, 0, r_pc(2, 0),
-        0, 1, -r_pc(0, 0), 0, 0, 1;
+        0, 1, -r_pc(0, 0),
+        0, 0, 1;
 
     Eigen::Matrix3d beta;
     beta << gamma(0, 0), gamma(0, 1), gamma(0, 2), gamma(2, 0), gamma(2, 1), gamma(2, 2), 1, 1, 1;
@@ -207,52 +176,29 @@ void OptProblem5::UpdateDynamicModel()
     Aa.block(0, 10, 10, 3) = ts * B;
     Ba.block(0, 0, 10, 3) = ts * B;
 
-    // tau constraints
-    // this->C_cons.block(2, 0, 2, 2) = -this->Kd * gamma_star;
-
-    // // GRF constraints
-    // this->C_cons.block(3, 0, 3, 3) = -Kd * T0;
-
-    this->C_cons.block(5, 0, 3, 3) = -Kd * T0;
-    this->C_cons.block(8, 0, 3, 3) = -Kd * T0;
+    // Update the constraint model
+    this->C_cons.block(3, 0, 3, 3) = -Kd * T0;
 }
 
 void OptProblem5::DefineConstraintMtxs()
 {
-    // this->Phi_cons.block(0, 0, 3, this->nxa) = this->C_cons.block(0, 0, 3, this->nxa) * this->Aa;
-    // this->aux_cons.block(0, 0, 3, this->nu) = this->C_cons.block(0, 0, 3, this->nxa) * this->Ba;
-    this->Phi_cons.block(0, 0, 5, this->nxa) = this->C_cons.block(0, 0, 5, this->nxa) * this->Aa;
-    this->aux_cons.block(0, 0, 5, this->nu) = this->C_cons.block(0, 0, 5, this->nxa) * this->Ba;
 
-    // this->Phi_cons.block(3, 0, 1, this->nxa) = this->C_cons.block(3, 0, 1, this->nxa) * this->Aa;
-    // this->aux_cons.block(3, 0, 1, this->nu) = this->C_cons.block(3, 0, 1, this->nxa) * this->Ba;
+    this->Phi_cons.block(0, 0, 4, this->nxa) = this->C_cons.block(0, 0, 4, this->nxa) * this->Aa;
+    this->Phi_cons.block(3, 0, 3, this->nxa) = this->C_cons.block(3, 0, 3, this->nxa);
+    this->aux_cons.block(0, 0, 4, this->nu) = this->C_cons.block(0, 0, 4, this->nxa) * this->Ba;
+    this->aux_cons.block(3, 0, 3, this->nu) = Kp * Eigen::MatrixXd::Identity(3, 3);
 
-    auto roty = RobotMtx->Rot_mtx;
+    // std::cout << this->C_cons << std::endl;
+    // std::cout << this->Phi_cons.block(0, 0, 7, this->nxa) << std::endl;
 
-    auto toe_pos_x = roty * (RobotMtx->HT_toe).block(0, 3, 3, 1);
-    auto heel_pos_x = roty * (RobotMtx->HT_heel).block(0, 3, 3, 1);
+    // auto roty = RobotMtx->Rot_mtx;
 
-    this->Ucv_var = RobotMtx->b.block(0, 0, 1, 1) + toe_pos_x.block(0, 0, 1, 1);
+    // auto toe_pos_x = roty * (RobotMtx->HT_toe).block(0, 3, 3, 1);
+    // auto heel_pos_x = roty * (RobotMtx->HT_heel).block(0, 3, 3, 1);
 
-    // auto J_toe = roty * RobotMtx->J_toe;
-    // Eigen::Matrix3d Jcs;
-    // Jcs << J_toe(0, 0), J_toe(0, 1), J_toe(0, 2), J_toe(2, 0), J_toe(2, 1), J_toe(2, 2), 1, 1, 1;
+    // this->Ucv_var = RobotMtx->b.block(0, 0, 1, 1) + toe_pos_x.block(0, 0, 1, 1);
+    // this->Lcv_var = RobotMtx->b.block(0, 0, 1, 1) + heel_pos_x.block(0, 0, 1, 1);
 
-    // this->Phi_cons.block(3, 0, 3, this->nxa) = -GRF_mtx * (Jcs.transpose()).inverse() * this->C_cons.block(3, 0, 3, this->nxa);
-    // this->aux_cons.block(3, 0, 3, this->nu) = -Kp * GRF_mtx * (Jcs.transpose()).inverse();
-
-    // ---------
-    auto J_toe = roty * RobotMtx->J_toe;
-    Eigen::Matrix3d Jcs;
-    Jcs << J_toe(0, 0), J_toe(0, 1), J_toe(0, 2), J_toe(2, 0), J_toe(2, 1), J_toe(2, 2), 1, 1, 1;
-
-    this->Phi_cons.block(5, 0, 3, this->nxa) = -GRF_mtx * (Jcs.transpose()).inverse() * this->C_cons.block(5, 0, 3, this->nxa);
-    this->aux_cons.block(5, 0, 3, this->nu) = -Kp * GRF_mtx * (Jcs.transpose()).inverse();
-
-    auto J_heel = roty * RobotMtx->J_heel;
-
-    Jcs << J_heel(0, 0), J_heel(0, 1), J_heel(0, 2), J_heel(2, 0), J_heel(2, 1), J_heel(2, 2), 1, 1, 1;
-
-    this->Phi_cons.block(8, 0, 3, this->nxa) = -GRF_mtx * (Jcs.transpose()).inverse() * this->C_cons.block(8, 0, 3, this->nxa);
-    this->aux_cons.block(8, 0, 3, this->nu) = -Kp * GRF_mtx * (Jcs.transpose()).inverse();
+    // this->ref(0, 0) = 0.25;
+    // this->UpdateReferences(this->ref);
 }

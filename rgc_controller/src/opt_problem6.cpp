@@ -14,19 +14,17 @@ OptProblem6::OptProblem6(ModelMatrices *Robot) : RobotMtx(Robot)
 
     this->Ba.resize(13, 3);
     this->Ba.setZero();
-    this->Ca.resize(2, 13);
+
+    this->Ca.resize(3, 13);
     this->Ca.setZero();
 
-    // q, th, tau
-    this->C_cons.resize(7, 13);
-
+    // q, tau
+    this->C_cons.resize(6, 13);
     this->C_cons.setZero();
 
     this->C_consV.resize(this->C_cons.rows(), 1);
-    this->C_consV.setZero();
 
-    // main reference
-    this->ref.resize(this->Ca.rows(), 1);
+    this->ref.resize(3, 1);
     this->ref.setZero();
 }
 
@@ -38,61 +36,59 @@ void OptProblem6::UpdateModelConstants()
 {
 
     /*
-    xi = |r th|
+    x = |dq q dth th r|   u = qr
 
-    x = | dxi q xi -g|   u = qr
+    M^{-1}=iM
+    Iq^{-1}*I0 = Iyy
 
-    A = | -Sf*T1 kp*Sf*Jcit  0 0;1| B = |-kp*Sf*Jcint|
-        | -Sm*T1 kp*Sm*Jcit  0  0 |     |-kp*Sd*Jcint|
-        |    T0      0       0  0 |     |     0      |
-        |    I       0       0  0 |     |     0      |
-        |    0       0       0  0 |     |     0      |
+    A = | -iM*(Kd+C)   -iM*kp   0 0 0| B = |iM*kp      |
+        |       I           0   0 0 0|     |     0     |
+        | Iyy*iM*kd  Iyy*iM*kp  0 0 0|     |-Iyy*iM*kp |
+        |       I           0   0 0 0|     |     0     |
+        | J_com             0   0 0 0|     |     0     |
 
-    xa = | dxi q xi -g qra|   u = dqr
+    x = |dq q dth th r qra|   u = dqr
 
     Aa = | Ad  Bd|  Ba = | Bd|
          | 0   I |       | I |
 
     Ca = |0 I 0 0 0| y = |q|
 */
-    // this->ref << 20, -15, 20;
-    // this->ref = this->ref * PI / 180;
 
+    // 60 -100 50
+
+    // this->ref << -60, 100, -40;
+    // this->ref << 78, -120, 50;
+
+    this->ref << -70, 120, -50;
+    this->ref = this->ref * PI / 180;
     // Initialize matrices constants
 
-    this->A(1, 9) = 1.0;
-    this->A.block(6, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
+    this->A.block(3, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
+    this->A(7, 0) = 1;
 
-    // this->Ca.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
-    this->Ca(0, 6) = 1; // rx
-    this->Ca(1, 7) = 1; // ry
-    // this->Ca(0, 1) = 1.0;
+    this->Ca.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
     this->Aa.block(10, 10, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
     this->Ba.block(10, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
-    this->sum_f.resize(2, 3);
-    this->sum_f.setZero();
-    this->sum_f.block(0, 0, 2, 2) = Eigen::MatrixXd::Identity(2, 2) / RobotMtx->m;
-
-    this->sum_m.resize(1, 3);
-    this->sum_m.setZero();
-
     // Initializa constraints matrix
 
     this->C_cons.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
-    this->C_cons(3, 8) = 1.0;
-    this->C_cons.block(4, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
-    this->C_cons.block(4, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
+    this->C_cons.block(3, 0, 3, 3) = -Kd * Eigen::MatrixXd::Identity(3, 3);
+    this->C_cons.block(3, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
+    this->C_cons.block(3, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
+
+    this->C_consV.setZero();
+    this->Ucv_var.setZero();
+    this->Lcv_var.setZero();
 
     Eigen::MatrixXd Ub, Lb;
-
     Ub.resize(this->C_cons.rows(), 1);
-    Ub << RobotMtx->qU, 0.6, RobotMtx->tau_lim;
+    Ub << RobotMtx->qU, RobotMtx->tau_lim;
     Lb.resize(this->C_cons.rows(), 1);
-    Lb << RobotMtx->qL, -0.6, -RobotMtx->tau_lim;
-    this->ref(0, 0) = 0;
-    this->ref(1, 0) = 0.8;
+    Lb << RobotMtx->qL, -RobotMtx->tau_lim;
+
     this->UpdateReferences(this->ref);
     this->SetConsBounds(Lb, Ub);
 }
@@ -101,102 +97,62 @@ void OptProblem6::UpdateDynamicModel()
 {
 
     /*
-    xi = |r th|
+    x = |dq q dth th r|   u = qr
 
-    x = | dxi q xi -g|   u = qr
+    M^{-1}=iM
+    Iq^{-1}*I0 = Iyy
 
-    A = | -Sf*T1 kp*Sf*Jcit  0 0;1| B = |-kp*Sf*Jcint|
-        | -Sm*T1 kp*Sm*Jcit  0  0 |     |-kp*Sd*Jcint|
-        |    T0      0       0  0 |     |     0      |
-        |    I       0       0  0 |     |     0      |
-        |    0       0       0  0 |     |     0      |
+    A = | -iM*(Kd+C)   -iM*kp   0 0 0| B = |iM*kp      |
+        |       I           0   0 0 0|     |     0     |
+        | Iyy*iM*kd  Iyy*iM*kp  0 0 0|     |-Iyy*iM*kp |
+        |       I           0   0 0 0|     |     0     |
+        | J_com             0   0 0 0|     |     0     |
 
-    xa = | dxi q xi -g qra|   u = dqr
+    x = |dq q dth th r qra|   u = dqr
 
     Aa = | Ad  Bd|  Ba = | Bd|
          | 0   I |       | I |
 
     Ca = |0 I 0 0 0| y = |q|
-    */
-
+*/
     auto roty = RobotMtx->Rot_mtx;
 
-    auto Jc = roty * RobotMtx->J_ankle;
     RobotMtx->CoMJacobian();
     RobotMtx->CoMPos();
+    RobotMtx->ComputeMassMatrix();
+    RobotMtx->ComputeCoriolisMatrix();
+    RobotMtx->ComputeIq();
 
     auto Jcom = roty * RobotMtx->J_com;
-    auto r_ = roty * RobotMtx->CoM;
+    auto inv_M = RobotMtx->M.inverse();
+    auto Cor_mtx = RobotMtx->C;
+    auto Iq = RobotMtx->Iq;
+    auto Ib = RobotMtx->Inertia[0](1, 1);
 
-    auto pc = roty * RobotMtx->HT_ankle.block(0, 3, 3, 1);
+    Eigen::Matrix<double, 2, 3> Jcs;
 
-    auto r_pc = pc - r_; // ok
+    Jcs << Jcom(0, 0), Jcom(0, 1), Jcom(0, 2), Jcom(2, 0), Jcom(2, 1), Jcom(2, 2); // ok
+    this->A.block(0, 0, 3, 3) = -inv_M * (Cor_mtx + Kd * Eigen::MatrixXd::Identity(3, 3));
+    this->A.block(0, 3, 3, 3) = -inv_M * Kp;
 
-    Eigen::Matrix3d Jcs;
-    Jcs << Jc(0, 0), Jc(0, 1), Jc(0, 2), Jc(2, 0), Jc(2, 1), Jc(2, 2), 1, 1, 1; // ok
+    this->A.block(6, 0, 1, 3) = -Iq * this->A.block(0, 0, 3, 3) / Ib;
+    this->A.block(6, 3, 1, 3) = -Iq * this->A.block(0, 3, 3, 3) / Ib;
 
-    auto Jc_invT = (Jcs.transpose()).inverse();
+    this->A.block(8, 0, 2, 3) = Jcs;
 
-    auto gamma = Jcom - Jc;
+    this->B.block(0, 0, 3, 3) = inv_M * Kp;
+    this->B.block(6, 0, 1, 3) = -Iq * this->B.block(0, 0, 3, 3) / Ib;
 
-    Eigen::Matrix3d alpha;
-    alpha << 1, 0, r_pc(2, 0),
-        0, 1, -r_pc(0, 0),
-        0, 0, 1;
-
-    Eigen::Matrix3d beta;
-    beta << gamma(0, 0), gamma(0, 1), gamma(0, 2), gamma(2, 0), gamma(2, 1), gamma(2, 2), 1, 1, 1;
-
-    auto inertia = roty * RobotMtx->InertiaTensor();
-
-    sum_m << r_pc(2, 0), -r_pc(0, 0), -1;
-    sum_m = sum_m / inertia(1, 1);
-
-    auto T0 = beta.inverse() * alpha;
-    auto T1 = Kd * Jc_invT * T0;
-
-    A.block(0, 0, 2, 3) = -sum_f * T1;
-    A.block(0, 3, 2, 3) = Kp * sum_f * Jc_invT;
-
-    A.block(2, 0, 1, 3) = -sum_m * T1;
-    A.block(2, 3, 1, 3) = Kp * sum_m * Jc_invT;
-
-    A.block(3, 0, 3, 3) = T0;
-
-    B.block(0, 0, 2, 3) = -Kp * sum_f * Jc_invT;
-    B.block(2, 0, 1, 3) = -Kp * sum_m * Jc_invT;
-
-    /*
-     Using forward Euler, the dynamical model is dicretized and then aumented
-      Aa = | Ad  Bd|  Ba = | Bd|
-           | 0   I |       | 0 |
-    */
-
-    Aa.block(0, 0, 10, 10) = Eigen::MatrixXd::Identity(10, 10) + ts * A;
+    Aa.block(0, 0, 10, 10) = Eigen::MatrixXd::Identity(10, 10) + ts * this->A;
     Aa.block(0, 10, 10, 3) = ts * B;
     Ba.block(0, 0, 10, 3) = ts * B;
-
-    // Update the constraint model
-    this->C_cons.block(4, 0, 3, 3) = -Kd * T0;
 }
 
 void OptProblem6::DefineConstraintMtxs()
 {
-    this->Phi_cons.block(0, 0, 4, this->nxa) = this->C_cons.block(0, 0, 4, this->nxa) * this->Aa;
-    this->Phi_cons.block(4, 0, 3, this->nxa) = this->C_cons.block(4, 0, 3, this->nxa);
-    this->aux_cons.block(0, 0, 4, this->nu) = this->C_cons.block(0, 0, 4, this->nxa) * this->Ba;
-    this->aux_cons.block(4, 0, 3, this->nu) = Kp * Eigen::MatrixXd::Identity(3, 3);
+    this->Phi_cons.block(0, 0, 3, this->nxa) = this->C_cons.block(0, 0, 3, this->nxa) * this->Aa;
+    this->Phi_cons.block(3, 0, 3, this->nxa) = this->C_cons.block(3, 0, 3, this->nxa);
 
-    // std::cout << this->C_cons << std::endl;
-    // std::cout << this->Phi_cons.block(0, 0, 7, this->nxa) << std::endl;
-
-    auto roty = RobotMtx->Rot_mtx;
-
-    auto toe_pos_x = roty * (RobotMtx->HT_toe).block(0, 3, 3, 1);
-    // auto heel_pos_x = roty * (RobotMtx->HT_heel).block(0, 3, 3, 1);
-
-    // this->Ucv_var = RobotMtx->b.block(0, 0, 1, 1) + toe_pos_x.block(0, 0, 1, 1);
-    // this->Lcv_var = RobotMtx->b.block(0, 0, 1, 1) + heel_pos_x.block(0, 0, 1, 1);
-    this->ref(0, 0) = toe_pos_x(0, 0) + RobotMtx->b(0, 0);
-    this->UpdateReferences(this->ref);
+    this->aux_cons.block(0, 0, 3, this->nu) = this->C_cons.block(0, 0, 3, this->nxa) * this->Ba;
+    this->aux_cons.block(3, 0, 3, this->nu) = Kp * Eigen::MatrixXd::Identity(3, 3);
 }

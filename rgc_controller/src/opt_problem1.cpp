@@ -17,12 +17,12 @@ OptProblem1::OptProblem1(ModelMatrices *Robot) : RobotMtx(Robot)
     this->Ca.resize(1, 13);
     this->Ca.setZero();
 
-    // q, rx
-    this->C_cons.resize(4, 13);
+    // q, rx, tau
+    this->C_cons.resize(7, 13);
 
     this->C_cons.setZero();
 
-    this->C_consV.resize(4, 1);
+    this->C_consV.resize(this->C_cons.rows(), 1);
     this->C_consV.setZero();
 
     // main reference
@@ -79,14 +79,16 @@ void OptProblem1::UpdateModelConstants()
     // Initializa constraints matrix
 
     this->C_cons.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
+    this->C_cons.block(4, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
+    this->C_cons.block(4, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
 
     Eigen::MatrixXd Ub, Lb;
 
-    Ub.resize(4, 1);
-    Ub << RobotMtx->qU, 0;
-    Lb.resize(4, 1);
-    Lb << RobotMtx->qL, 0;
-    this->ref(0, 0) = 0.2;
+    Ub.resize(this->C_cons.rows(), 1);
+    Ub << RobotMtx->qU, 0, RobotMtx->tau_lim;
+    Lb.resize(this->C_cons.rows(), 1);
+    Lb << RobotMtx->qL, 0, -RobotMtx->tau_lim;
+
     this->UpdateReferences(this->ref);
     this->SetConsBounds(Lb, Ub);
 }
@@ -135,7 +137,8 @@ void OptProblem1::UpdateDynamicModel()
 
     Eigen::Matrix3d alpha;
     alpha << 1, 0, r_pc(2, 0),
-        0, 1, -r_pc(0, 0), 0, 0, 1;
+        0, 1, -r_pc(0, 0),
+        0, 0, 1;
 
     Eigen::Matrix3d beta;
     beta << gamma(0, 0), gamma(0, 1), gamma(0, 2), gamma(2, 0), gamma(2, 1), gamma(2, 2), 1, 1, 1;
@@ -168,12 +171,20 @@ void OptProblem1::UpdateDynamicModel()
     Aa.block(0, 0, 10, 10) = Eigen::MatrixXd::Identity(10, 10) + ts * A;
     Aa.block(0, 10, 10, 3) = ts * B;
     Ba.block(0, 0, 10, 3) = ts * B;
+
+    // Update the constraint model
+    this->C_cons.block(4, 0, 3, 3) = -Kd * T0;
 }
 
 void OptProblem1::DefineConstraintMtxs()
 {
     this->Phi_cons.block(0, 0, 4, this->nxa) = this->C_cons.block(0, 0, 4, this->nxa) * this->Aa;
+    this->Phi_cons.block(4, 0, 3, this->nxa) = this->C_cons.block(4, 0, 3, this->nxa);
     this->aux_cons.block(0, 0, 4, this->nu) = this->C_cons.block(0, 0, 4, this->nxa) * this->Ba;
+    this->aux_cons.block(4, 0, 3, this->nu) = Kp * Eigen::MatrixXd::Identity(3, 3);
+
+    // std::cout << this->C_cons << std::endl;
+    // std::cout << this->Phi_cons.block(0, 0, 7, this->nxa) << std::endl;
 
     auto roty = RobotMtx->Rot_mtx;
 

@@ -14,7 +14,7 @@ class JumpMLFcns:
         self.OBS_LOW_VALUE = 0
         self.OBS_HIGH_VALUE = 1
         self.NUM_OBS_STATES = 22
-        self.NUM_ACTIONS = 9
+        self.NUM_ACTIONS = 8
 
         # The observation state are: [r, dr,th, dth, q, dq, qr, qrh, tau, ag_action, trans_history, contact_, stagnation_metric]
 
@@ -85,6 +85,9 @@ class JumpMLFcns:
         self.robot_states = _robot_states
 
         self.foot_contact_state = 0
+
+        self.contact_penalty_steps = 0
+        self.grace_period = 5
 
         self.ac_total_changes = 0
         self.n_jumps = 0
@@ -206,7 +209,15 @@ class JumpMLFcns:
         if self.robot_states.heel_pos[1, 0] < -0.025:
             return True
 
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
         # # check if the base postion in Z direction is near the ground
+=======
+        # check if the base postion in Z direction is near the ground
+>>>>>>> Stashed changes
+=======
+        # check if the base postion in Z direction is near the ground
+>>>>>>> Stashed changes
         if self.robot_states.b_pos[1, 0] < 0.35:
             return True
 
@@ -237,7 +248,7 @@ class JumpMLFcns:
         self.n_jumps = 0
         self.ac_total_changes = 0
         self.rewards[:, :] = 0
-        # print(self.inter)
+        self.contact_penalty_steps = 0
         self.inter = 0
         self.first_interation = True
 
@@ -289,9 +300,25 @@ class JumpMLFcns:
         return sum(np.clip(self.joint_error_weight / (joint_error_abs + epsilon), 0, 10))
 
     def _compute_contact_penalty(self):
-        # Penalty if foot contact state and certain actions occur
-        if (self.robot_states.toe_cont or self.robot_states.heel_cont) and (self.actions[0] in [6, 5]):
-            return -self.prohibited_po_weight
+        """
+        Gradually penalizes the agent for maintaining contact when it shouldn't,
+        based on how long it stays in that mode (e.g., actions 6 or 7).
+        """
+        prohibited_actions = [6, 7]
+        foot_in_contact = self.robot_states.toe_cont or self.robot_states.heel_cont
+        current_action = self.actions[0]
+
+        # If contact exists and we're in a prohibited PO, increase penalty steps
+        if foot_in_contact and current_action in prohibited_actions:
+            self.contact_penalty_steps += 1
+        else:
+            self.contact_penalty_steps = 0  # Reset if conditions are fine
+
+        # Start penalizing only after a grace period
+
+        if self.contact_penalty_steps > self.grace_period:
+            return -self.prohibited_po_weight * (self.contact_penalty_steps - self.grace_period)
+
         return 0
 
     def _transition_reward(self):

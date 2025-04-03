@@ -14,10 +14,10 @@ OptProblem3::OptProblem3(ModelMatrices *Robot) : RobotMtx(Robot)
 
     this->Ba.resize(13, 3);
     this->Ba.setZero();
-    this->Ca.resize(1, 13);
+    this->Ca.resize(2, 13);
     this->Ca.setZero();
 
-    // q, rx, tau
+    // q, th, tau
     this->C_cons.resize(7, 13);
 
     this->C_cons.setZero();
@@ -26,7 +26,7 @@ OptProblem3::OptProblem3(ModelMatrices *Robot) : RobotMtx(Robot)
     this->C_consV.setZero();
 
     // main reference
-    this->ref.resize(1, 1);
+    this->ref.resize(this->Ca.rows(), 1);
     this->ref.setZero();
 }
 
@@ -55,8 +55,8 @@ void OptProblem3::UpdateModelConstants()
 
     Ca = |0 I 0 0 0| y = |q|
 */
-    // this->qhl << 50, -90, 30;
-    // this->qhl = this->qhl * PI / 180;
+    // this->ref << 20, -15, 20;
+    // this->ref = this->ref * PI / 180;
 
     // Initialize matrices constants
 
@@ -64,7 +64,9 @@ void OptProblem3::UpdateModelConstants()
     this->A.block(6, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
     // this->Ca.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
-    this->Ca(0, 8) = 1.0;
+    this->Ca(0, 6) = 1; // rx
+    this->Ca(1, 7) = 1; // ry
+    // this->Ca(0, 1) = 1.0;
 
     this->Aa.block(10, 10, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
     this->Ba.block(10, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
@@ -79,16 +81,18 @@ void OptProblem3::UpdateModelConstants()
     // Initializa constraints matrix
 
     this->C_cons.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
+    this->C_cons(3, 8) = 1.0;
     this->C_cons.block(4, 3, 3, 3) = -Kp * Eigen::MatrixXd::Identity(3, 3);
     this->C_cons.block(4, 10, 3, 3) = Kp * Eigen::MatrixXd::Identity(3, 3);
 
     Eigen::MatrixXd Ub, Lb;
 
     Ub.resize(this->C_cons.rows(), 1);
-    Ub << RobotMtx->qU, 0, RobotMtx->tau_lim;
+    Ub << RobotMtx->qU, 0.6, RobotMtx->tau_lim;
     Lb.resize(this->C_cons.rows(), 1);
-    Lb << RobotMtx->qL, 0, -RobotMtx->tau_lim;
-
+    Lb << RobotMtx->qL, -0.6, -RobotMtx->tau_lim;
+    this->ref(0, 0) = 0;
+    this->ref(1, 0) = 0.8;
     this->UpdateReferences(this->ref);
     this->SetConsBounds(Lb, Ub);
 }
@@ -189,8 +193,10 @@ void OptProblem3::DefineConstraintMtxs()
     auto roty = RobotMtx->Rot_mtx;
 
     auto toe_pos_x = roty * (RobotMtx->HT_toe).block(0, 3, 3, 1);
-    auto heel_pos_x = roty * (RobotMtx->HT_heel).block(0, 3, 3, 1);
+    // auto heel_pos_x = roty * (RobotMtx->HT_heel).block(0, 3, 3, 1);
 
-    this->Ucv_var = RobotMtx->b.block(0, 0, 1, 1) + toe_pos_x.block(0, 0, 1, 1);
-    this->Lcv_var = RobotMtx->b.block(0, 0, 1, 1) + heel_pos_x.block(0, 0, 1, 1);
+    // this->Ucv_var = RobotMtx->b.block(0, 0, 1, 1) + toe_pos_x.block(0, 0, 1, 1);
+    // this->Lcv_var = RobotMtx->b.block(0, 0, 1, 1) + heel_pos_x.block(0, 0, 1, 1);
+    this->ref(0, 0) = toe_pos_x(0, 0) + RobotMtx->b(0, 0);
+    this->UpdateReferences(this->ref);
 }
