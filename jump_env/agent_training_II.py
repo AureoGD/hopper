@@ -19,10 +19,10 @@ best_model_path = os.path.join(models_dir, "best_model.zip")  # Always overwrite
 
 # Initialize environment and model
 env = jumper_env.JumperEnv(render=True, render_every=False, log_interval=10, render_interval=10)
-# model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
+model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
 
-model = A2C("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
-# model = PPO.load("models/1742240835/best_model.zip", env, verbose=1, tensorboard_log=logdir)
+#model = A2C("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
+#model = PPO.load("models/1742240835/best_model.zip", env, verbose=1, tensorboard_log=logdir)
 
 while iters < 500:
     iters += 1

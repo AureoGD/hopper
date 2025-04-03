@@ -135,7 +135,7 @@ class JumperEnv(gym.Env):
 
         self.current_step += 1
 
-        return obs, reward, terminated, truncated, info
+        return obs, float(np.squeeze(reward)), terminated, truncated, info
 
     def reset(self, seed=None):
         super().reset(seed=seed)
