@@ -31,8 +31,8 @@ Op_Wrapper::Op_Wrapper()
     this->optP7 = new OptProblem7(_JumpRobot);
     this->op[7] = this->optP7;
 
-    // this->optP9 = new OptProblem9(_JumpRobot);
-    // this->op[8] = this->optP9;
+    this->optP8 = new OptProblem8(_JumpRobot);
+    this->op[8] = this->optP8;
 
     this->qhl.resize(3, 1);
 }
@@ -45,7 +45,7 @@ void Op_Wrapper::RGCConfig(double _ts, double _Kp, double _Kd)
 {
     std::cout << "Configuring POs" << std::endl;
 
-    std::vector<int> indices = {0, 1, 2, 3, 4, 5, 6, 7}; // All relevant indices
+    std::vector<int> indices = {0, 1, 2, 3, 4, 5, 6, 7, 8}; // All relevant indices
 
     for (int i : indices)
     {
@@ -145,7 +145,7 @@ int Op_Wrapper::ChooseRGCPO(int npo)
 
     if (this->solver.isInitialized())
     {
-        if (npo == 0 || npo == 1 || npo == 3 || npo == 5 || npo == 6 || npo == 7)
+        if (npo == 0 || npo == 1 || npo == 3 || npo == 5 || npo == 6 || npo == 7 || npo == 8)
         {
             // update the states vector |dr, dth, q, g, qa|
             this->x << r_vel, dth, q, r_pos, th, g, qr;

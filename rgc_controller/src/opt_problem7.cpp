@@ -68,7 +68,7 @@ void OptProblem7::UpdateModelConstants()
     this->A.block(6, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
     // this->Ca.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
-    this->Ca(0, 7) = 1; // rx
+    this->Ca(0, 7) = 1; // rz
     this->Ca(0, 8) = 1; // th
 
     this->Aa.block(10, 10, 3, 3) = Eigen::MatrixXd::Identity(3, 3);

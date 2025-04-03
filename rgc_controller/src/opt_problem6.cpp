@@ -190,14 +190,13 @@ void OptProblem6::DefineConstraintMtxs()
     // std::cout << this->C_cons << std::endl;
     // std::cout << this->Phi_cons.block(0, 0, 7, this->nxa) << std::endl;
 
-    // auto roty = RobotMtx->Rot_mtx;
+    auto roty = RobotMtx->Rot_mtx;
 
-    // auto toe_pos_x = roty * (RobotMtx->HT_toe).block(0, 3, 3, 1);
+    auto toe_pos_x = roty * (RobotMtx->HT_toe).block(0, 3, 3, 1);
     // auto heel_pos_x = roty * (RobotMtx->HT_heel).block(0, 3, 3, 1);
 
     // this->Ucv_var = RobotMtx->b.block(0, 0, 1, 1) + toe_pos_x.block(0, 0, 1, 1);
     // this->Lcv_var = RobotMtx->b.block(0, 0, 1, 1) + heel_pos_x.block(0, 0, 1, 1);
-
-    this->ref(0, 0) = 0.25;
+    this->ref(0, 0) = toe_pos_x(0, 0) + RobotMtx->b(0, 0);
     this->UpdateReferences(this->ref);
 }

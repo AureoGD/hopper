@@ -259,7 +259,7 @@ while count <= max_int - 1:
     if count > 9999 and count < 17000:
         PO = 5
     if count >= 17000:
-        PO = 7
+        PO = 6
     # elif count > 15000 and count < 15250:
     #     PO = 4
     # elif count > 15250 and count < 15500:

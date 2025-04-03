@@ -1,6 +1,6 @@
-#include "rgc_controller/opt_problem6.h"
+#include "rgc_controller/opt_problem8.h"
 
-OptProblem6::OptProblem6(ModelMatrices *Robot) : RobotMtx(Robot)
+OptProblem8::OptProblem8(ModelMatrices *Robot) : RobotMtx(Robot)
 {
     // Resize dynamic model matrices
     this->A.resize(10, 10);
@@ -30,11 +30,11 @@ OptProblem6::OptProblem6(ModelMatrices *Robot) : RobotMtx(Robot)
     this->ref.setZero();
 }
 
-OptProblem6::~OptProblem6()
+OptProblem8::~OptProblem8()
 {
 }
 
-void OptProblem6::UpdateModelConstants()
+void OptProblem8::UpdateModelConstants()
 {
 
     /*
@@ -64,8 +64,8 @@ void OptProblem6::UpdateModelConstants()
     this->A.block(6, 0, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
 
     // this->Ca.block(0, 3, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
-    this->Ca(0, 6) = 1;
-    this->Ca(1, 7) = 1;
+    this->Ca(0, 7) = 1;
+    this->Ca(1, 8) = 1;
     // this->Ca(0, 1) = 1.0;
 
     this->Aa.block(10, 10, 3, 3) = Eigen::MatrixXd::Identity(3, 3);
@@ -90,13 +90,14 @@ void OptProblem6::UpdateModelConstants()
     Ub << RobotMtx->qU, RobotMtx->tau_lim;
     Lb.resize(this->C_cons.rows(), 1);
     Lb << RobotMtx->qL, -RobotMtx->tau_lim;
-    this->ref(0, 0) = 0;
-    this->ref(1, 0) = 0.8;
+    // this->ref(0, 0) = 0;
+    this->ref(0, 0) = 2;
+    this->ref(1, 0) = 0.3;
     this->UpdateReferences(this->ref);
     this->SetConsBounds(Lb, Ub);
 }
 
-void OptProblem6::UpdateDynamicModel()
+void OptProblem8::UpdateDynamicModel()
 {
 
     /*
@@ -120,14 +121,14 @@ void OptProblem6::UpdateDynamicModel()
 
     auto roty = RobotMtx->Rot_mtx;
 
-    auto Jc = roty * RobotMtx->J_ankle;
+    auto Jc = roty * RobotMtx->J_toe;
     RobotMtx->CoMJacobian();
     RobotMtx->CoMPos();
 
     auto Jcom = roty * RobotMtx->J_com;
     auto r_ = roty * RobotMtx->CoM;
 
-    auto pc = roty * RobotMtx->HT_ankle.block(0, 3, 3, 1);
+    auto pc = roty * RobotMtx->HT_toe.block(0, 3, 3, 1);
 
     auto r_pc = pc - r_; // ok
 
@@ -179,12 +180,13 @@ void OptProblem6::UpdateDynamicModel()
     this->C_cons.block(3, 0, 3, 3) = -Kd * T0;
 }
 
-void OptProblem6::DefineConstraintMtxs()
+void OptProblem8::DefineConstraintMtxs()
 {
+
     this->Phi_cons.block(0, 0, 4, this->nxa) = this->C_cons.block(0, 0, 4, this->nxa) * this->Aa;
-    this->Phi_cons.block(4, 0, 3, this->nxa) = this->C_cons.block(4, 0, 3, this->nxa);
+    this->Phi_cons.block(3, 0, 3, this->nxa) = this->C_cons.block(3, 0, 3, this->nxa);
     this->aux_cons.block(0, 0, 4, this->nu) = this->C_cons.block(0, 0, 4, this->nxa) * this->Ba;
-    this->aux_cons.block(4, 0, 3, this->nu) = Kp * Eigen::MatrixXd::Identity(3, 3);
+    this->aux_cons.block(3, 0, 3, this->nu) = Kp * Eigen::MatrixXd::Identity(3, 3);
 
     // std::cout << this->C_cons << std::endl;
     // std::cout << this->Phi_cons.block(0, 0, 7, this->nxa) << std::endl;
@@ -197,6 +199,6 @@ void OptProblem6::DefineConstraintMtxs()
     // this->Ucv_var = RobotMtx->b.block(0, 0, 1, 1) + toe_pos_x.block(0, 0, 1, 1);
     // this->Lcv_var = RobotMtx->b.block(0, 0, 1, 1) + heel_pos_x.block(0, 0, 1, 1);
 
-    this->ref(0, 0) = 0.25;
-    this->UpdateReferences(this->ref);
+    // this->ref(0, 0) = 0.25;
+    // this->UpdateReferences(this->ref);
 }

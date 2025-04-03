@@ -1,14 +1,14 @@
-#ifndef OPT_PROBLEM6_H
-#define OPT_PROBLEM6_H
+#ifndef OPT_PROBLEM8_H
+#define OPT_PROBLEM8_H
 
 #include "rgc_controller/opt_problem.h"
 
-class OptProblem6 : public OptProblem
+class OptProblem8 : public OptProblem
 {
 public:
-    OptProblem6(ModelMatrices *Robot);
+    OptProblem8(ModelMatrices *Robot);
 
-    ~OptProblem6();
+    ~OptProblem8();
 
     void UpdateDynamicModel() override;
 
