@@ -21,8 +21,8 @@ best_model_path = os.path.join(models_dir, "best_model.zip")  # Always overwrite
 env = jumper_env.JumperEnv(render=True, render_every=False, log_interval=10, render_interval=10)
 model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
 
-#model = A2C("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
-#model = PPO.load("models/1742240835/best_model.zip", env, verbose=1, tensorboard_log=logdir)
+# model = A2C("MlpPolicy", env, verbose=1, tensorboard_log=logdir)
+# model = PPO.load("models/1742240835/best_model.zip", env, verbose=1, tensorboard_log=logdir)
 
 while iters < 500:
     iters += 1
@@ -38,7 +38,7 @@ while iters < 500:
     if mean_reward > best_reward:
         best_reward = mean_reward
         model.save(best_model_path)  # Overwrite the previous best model
-        print(f"🔥 New best model saved at {best_model_path} with reward: {best_reward}")
+        print(f"New best model saved at {best_model_path} with reward: {best_reward}")
 
     # Save periodic models (optional)
     model.save(f"{models_dir}/ppo_model_{TIMESTEPS * iters}.zip")
