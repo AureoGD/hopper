@@ -209,15 +209,7 @@ class JumpMLFcns:
         if self.robot_states.heel_pos[1, 0] < -0.025:
             return True
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
         # # check if the base postion in Z direction is near the ground
-=======
-        # check if the base postion in Z direction is near the ground
->>>>>>> Stashed changes
-=======
-        # check if the base postion in Z direction is near the ground
->>>>>>> Stashed changes
         if self.robot_states.b_pos[1, 0] < 0.35:
             return True
 

@@ -1,6 +1,7 @@
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import DummyVecEnv
 import os
 import time
 import jumper_env
@@ -32,7 +33,8 @@ if __name__ == "__main__":
 
     # Evaluation environment
     eval_env = jumper_env.JumperEnv(render=False)
-    eval_env = VecMonitor(eval_env)
+    eval_env = DummyVecEnv([lambda: eval_env])  # Wrap in DummyVecEnv
+    eval_env = VecMonitor(eval_env)  # Then monitor it
 
     # PPO model
     model = PPO("MlpPolicy", train_env, verbose=1, tensorboard_log=logdir)

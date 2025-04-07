@@ -11,6 +11,7 @@ import os
 
 from jump_model import RobotStates, JumpModel
 import jump_ml_fcns
+import curriculum_learning
 
 
 class JumperEnv(gym.Env):
@@ -23,7 +24,8 @@ class JumperEnv(gym.Env):
         self.robot_states = RobotStates()
         self.robot_states.dqr = np.zeros((3, 1), dtype=np.float64)
         self.robot_mdl = JumpModel(_robot_states=self.robot_states)
-        self.robot_ml_fcns = jump_ml_fcns.JumpMLFcns(_robot_states=self.robot_states)
+        # self.robot_ml_fcns = jump_ml_fcns.JumpMLFcns(_robot_states=self.robot_states)
+        self.robot_ml_fcns = curriculum_learning.JumpMLFcns(_robot_states=self.robot_states)
 
         self._last_frame_time = 0.0
         self._time_step = self.robot_mdl.sim_dt
@@ -141,7 +143,7 @@ class JumperEnv(gym.Env):
         super().reset(seed=seed)
 
         # Save the collected states if logging is enabled
-        self._save_data()
+        # self._save_data()
 
         self.robot_mdl.reset_variables()
         self.robot_ml_fcns.reset_vars()
