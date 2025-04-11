@@ -16,7 +16,7 @@ rgc_controller_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".
 import pybind_opWrapper
 
 sys.path.append("./model")
-import model_matrices
+import jump_model.model_matrices as model_matrices
 
 
 @dataclass

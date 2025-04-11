@@ -14,7 +14,7 @@ from stable_baselines3.common.monitor import Monitor
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from jump_env.jumper_env import JumperEnv
-from jump_env.custom_policy.custom_policy import CNNPPOPolicy
+from cnn_feature.custom_policy import CNNPPOPolicy
 from jump_env.custom_policy.observation_stack_wrapper import ObservationStackWrapper
 from stable_baselines3.common.vec_env import DummyVecEnv
 

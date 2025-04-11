@@ -9,7 +9,7 @@ import pickle
 from datetime import datetime
 import os
 
-from jump_model import RobotStates, JumpModel
+from jump_model.jump_model import RobotStates, JumpModel
 import jump_ml_fcns
 import curriculum_learning
 
