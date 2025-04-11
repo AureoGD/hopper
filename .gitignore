@@ -7,3 +7,4 @@ model/__pycache__
 jump_env/__pycache__
 jump_ga/logs
 tb_logs
+best_model

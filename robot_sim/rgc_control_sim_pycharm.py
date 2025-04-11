@@ -256,10 +256,10 @@ while count <= max_int - 1:
     write_history()
     p.stepSimulation()
     count += 1
-    if count > 9999 and count < 17000:
-        PO = 5
-    if count >= 17000:
-        PO = 6
+    if count > 9999 and count < 13000:
+        PO = 0
+    # if count >= 17000:
+    #     PO = 6
     # elif count > 15000 and count < 15250:
     #     PO = 4
     # elif count > 15250 and count < 15500:
