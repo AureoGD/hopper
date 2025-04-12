@@ -7,16 +7,15 @@ import sys
 from icecream import ic
 from dataclasses import dataclass, field
 import time
+from .model_matrices import ModelMatrices
+
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_path + "/../rgc_controller/build")
 rgc_controller_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../rgc_controller/config/config.yaml"))
-
+sys.path.append("./jump_model")
 
 import pybind_opWrapper
-
-sys.path.append("./model")
-import jump_model.model_matrices as model_matrices
 
 
 @dataclass
@@ -58,14 +57,14 @@ class RobotStates:
 class JumpModel:
     def __init__(self, _robot_states, N=10):
         # Paths and Constants
-        self.model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../model/hopper.urdf")
+        self.model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../jump_model/hopper.urdf")
         # print(self.model_path)
         self.AC_JOINT_LIST = (4, 6, 8)
         self.JOINT_ST_LIST = (0, 1, 2, 4, 6, 8)
         self.CONTACT_JOINTS = (10, 11)
         self.JOINT_MODEL_NUM = len(self.JOINT_ST_LIST)
 
-        self.mdl = model_matrices.ModelMatrices()
+        self.mdl = ModelMatrices()
 
         # Time steps
         self.sim_dt = 0.001  # Simulation time step

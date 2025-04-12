@@ -9,9 +9,11 @@ import pickle
 from datetime import datetime
 import os
 
-from jump_model.jump_model import RobotStates, JumpModel
-import jump_ml_fcns
-import curriculum_learning
+from .jump_model import RobotStates, JumpModel
+
+# import jump_ml_fcnsJ
+
+from .curriculum_learning import JumpMLFcns
 
 
 class JumperEnv(gym.Env):
@@ -25,25 +27,28 @@ class JumperEnv(gym.Env):
         self.robot_states.dqr = np.zeros((3, 1), dtype=np.float64)
         self.robot_mdl = JumpModel(_robot_states=self.robot_states)
         # self.robot_ml_fcns = jump_ml_fcns.JumpMLFcns(_robot_states=self.robot_states)
-        self.robot_ml_fcns = curriculum_learning.JumpMLFcns(_robot_states=self.robot_states)
+        self.robot_ml_fcns = JumpMLFcns(_robot_states=self.robot_states)
 
         self._last_frame_time = 0.0
         self._time_step = self.robot_mdl.sim_dt
         self._is_render = render
         self.interations = self.robot_mdl.rgc_dt / self.robot_mdl.sim_dt
 
+        self.enable_logging = False  # Logging flag
+
         # Logging setup inside "Data" folder
-        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.data_root = "Data"  # Main folder
-        os.makedirs(self.data_root, exist_ok=True)  # Ensure "Data/" exists
+        if self.enable_logging:
+            current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            self.data_root = "Data"  # Main folder
+            os.makedirs(self.data_root, exist_ok=True)  # Ensure "Data/" exists
 
-        self.log_folder = os.path.join(self.data_root, f"data-{current_time}")
-        os.makedirs(self.log_folder, exist_ok=True)  # Create timestamped folder
+            self.log_folder = os.path.join(self.data_root, f"data-{current_time}")
+            os.makedirs(self.log_folder, exist_ok=True)  # Create timestamped folder
 
-        self.ml_file_name = os.path.join(self.log_folder, f"ml_data-{current_time}")
+            self.ml_file_name = os.path.join(self.log_folder, f"ml_data-{current_time}")
 
         self.log_interval = log_interval  # Number of resets before logging starts
-        self.enable_logging = False  # Logging flag
+
         self.logged_states = []  # Store robot states
 
         # Initialize the physics client

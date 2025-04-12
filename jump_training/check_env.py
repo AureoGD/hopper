@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 from icecream import ic
 import numpy as np
 
-import jumper_env
+from jump_env.jumper_env import JumperEnv
 
-env = jumper_env.JumperEnv(render=True, render_every=True, render_interval=10, log_interval=10)
+env = JumperEnv(render=True, render_every=True, render_interval=10, log_interval=10)
 # check_env(env)
 
 episodes = 1

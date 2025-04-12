@@ -5,6 +5,10 @@ rgc_controller/build
 robot_sim/__pycache__
 model/__pycache__
 jump_env/__pycache__
+jump_training/__pycache__
 jump_ga/logs
+jump_ga/__pycache__
 tb_logs
 best_model
+agents
+training_logs
