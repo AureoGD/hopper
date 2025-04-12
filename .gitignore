@@ -12,3 +12,4 @@ tb_logs
 best_model
 agents
 training_logs
+model/
