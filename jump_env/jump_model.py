@@ -104,6 +104,8 @@ class JumpModel:
         self.ac_step = 0
 
     def new_action(self, action):
+        if action == 0:
+            pass
         #  In this function, the RGC will be called to solve for new qr
         self.robot_states.ag_act = action
         # | q, dq, qr[:, 0], dr, rw, db, b, dth[0, 0], th[0, 0]|
@@ -203,12 +205,12 @@ class JumpModel:
         # q = [dx. bz. th, q1, q2, q3]
         q = np.zeros((self.JOINT_MODEL_NUM, 1), dtype=np.float64)
         # q = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
-        q[1, 0] = 0.95
+        q[1, 0] = 0.88
 
         # back knee
         q[3, 0] = -0.56
         q[4, 0] = 1.06
-        q[5, 0] = -0.44
+        q[5, 0] = -0.50
 
         # front knee
         # q[3, 0] = 0.45

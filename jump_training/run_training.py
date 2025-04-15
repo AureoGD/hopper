@@ -4,27 +4,17 @@ import os
 # Optional: Add project root to PYTHONPATH
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from jump_training import generic_ppo
+from jump_training.generic_ppo import train
 
 if __name__ == "__main__":
-    sys.argv = [
-        "generic_training.py",  # Fake script name (ignored)
-        "--policy",
-        "DNN",
-        "--stack_size",
-        "10",
-        "--hidden_layers",
-        "128",
-        "128",
-        "--total_timesteps",
-        "200000",
-        "--num_envs",
-        "8",
-        "--eval_freq",
-        "10000",
-        "--save_freq",
-        "25000",
-    ]
+    from jump_training.generic_ppo import train
 
-    # Run the training script
-    exec(open(os.path.join("jump_training", "generic_training.py")).read())
+    train(
+        policy="DNN",
+        stack_size=1,
+        hidden_layers=[128, 128],
+        total_interations=500,
+        num_envs=16,
+        eval_freq=5000,
+        save_freq=10000,
+    )

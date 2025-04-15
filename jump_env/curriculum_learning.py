@@ -106,7 +106,7 @@ class JumpMLFcns:
         self.stagnation_metric = 0
         self.stagnation_penalty_weight = 3.5
         self.stagnation_steps = 0  # Count of how long the agent is "stuck"
-        self.stagnation_threshold = 250  # How many steps before penalty
+        self.stagnation_threshold = 150  # How many steps before penalty
         self.prev_states = None  # Store previous states for comparison
 
         # Transition
@@ -114,7 +114,7 @@ class JumpMLFcns:
         self.action_long_transition_weight = 0.65 * self.action_short_transition_weight
         self.max_transitions = self.N
 
-        # minimal  mode duration
+        # minimal mode duration
         self.min_mode_duration_weight = 1.2
         self.mode_duration = 0
         self.mode_min_duration = {0: 20, 1: 20, 2: 20, 3: 20, 4: 20, 5: 20, 6: 20, 7: 20}
@@ -138,7 +138,7 @@ class JumpMLFcns:
         # Stay up right
         self.curriculum_phase = 1
         self.phase1_success_steps = 0
-        self.phase1_success_steps_threshold = 100
+        self.phase1_success_steps_threshold = 50
 
         # crouch
         self.standing_height = 0
@@ -247,6 +247,9 @@ class JumpMLFcns:
             return True
 
         if (self.n_jumps + 1) * self.max_inter <= self.inter:
+            return True
+
+        if self.curriculum_phase > 2:
             return True
 
         # otherwise continue
@@ -402,9 +405,10 @@ class JumpMLFcns:
         max_delta = np.max(delta_states)
 
         # Deadband logic
-        if max_delta < 0.0001 and mode_unchanged:
+        if max_delta < 0.001 and mode_unchanged:
             self.stagnation_steps += 1
-        elif max_delta > 0.001 or not mode_unchanged:
+            # print(f"Stag: {self.inter}")
+        elif max_delta > 0.01 or not mode_unchanged:
             self.stagnation_steps = 0
         else:
             pass
@@ -447,11 +451,12 @@ class JumpMLFcns:
         dth = np.linalg.norm(self.robot_states.dth)
         valid_po = self.robot_states.ag_act not in self.prohibited_actions
 
-        com_ok = r_z > 0.7
+        com_ok = r_z > 0.75
         upright = th < 0.15
-        low_motion = r_vel < 0.003 and dth < 0.025  # can adjust this threshold
+        low_motion = r_vel < 0.005 and dth < 0.05  # can adjust this threshold
 
-        if com_ok and upright and valid_po and low_motion:
+        # if com_ok and upright and valid_po and low_motion:
+        if com_ok and upright and self.stagnation_steps > 0:
             self.phase1_success_steps += 1
             return 1.0
         elif com_ok and upright and valid_po:
@@ -493,7 +498,8 @@ class JumpMLFcns:
             self.curriculum_phase = 2
             self.standing_com_height = self.robot_states.r_pos[1, 0]
             return 100
-        elif self.curriculum_phase == 2 and self.d_crouch_depth < 0.009 and self.robot_states.r_pos[1, 0] < 0.6:
+        # elif self.curriculum_phase == 2 and self.d_crouch_depth < 0.009 and self.robot_states.r_pos[1, 0] < 0.6:
+        elif self.curriculum_phase == 2 and self.stagnation_steps > 0 and self.robot_states.r_pos[1, 0] < 0.6:
             # print(f"End of phase 2: {self.inter}")
             # print(self.inter)
             self.curriculum_phase = 3
@@ -535,8 +541,10 @@ class JumpMLFcns:
         Returns:
             float: A small positive reward (e.g., 0.5) or 0 otherwise.
         """
-        if self.curriculum_phase == 1 and self.actions[0] in [0, 1]:
-            return 1.0
+        if self.curriculum_phase == 1 and self.actions[0] == 0:
+            return 1.2
+        if self.curriculum_phase == 1 and self.actions[0] == 1:
+            return 1
         if self.curriculum_phase == 2 and self.actions[0] in [2]:
             return 1.0
         return 0.0
