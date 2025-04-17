@@ -16,7 +16,7 @@ for episode in range(episodes):
     obs, _ = env.reset()
     ic(episode)
     total_reward = 0
-    mode = 7
+    mode = 1
     inter = 0
     while not done:
         # action = env.action_space.sample()
@@ -26,7 +26,7 @@ for episode in range(episodes):
         inter += 1
         if inter > 25 and inter < 500:
             mode = 1
-        if inter > 600:
+        if inter > 500:
             mode = 2
         # if inter >= 900 and inter < 1000:
         #     mode = 4

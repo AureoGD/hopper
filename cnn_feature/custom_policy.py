@@ -11,5 +11,4 @@ class CNNPPOPolicy(ActorCriticPolicy):
             *args,
             **kwargs,
             features_extractor_class=CNN1DFeatureExtractor,
-            features_extractor_kwargs=cnn_kwargs,
         )

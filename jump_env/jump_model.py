@@ -205,7 +205,7 @@ class JumpModel:
         # q = [dx. bz. th, q1, q2, q3]
         q = np.zeros((self.JOINT_MODEL_NUM, 1), dtype=np.float64)
         # q = np.array([0, 0.95, 0, 0.56, -1.06, 0.56])
-        q[1, 0] = 0.88
+        q[1, 0] = 0.88  # 0.88
 
         # back knee
         q[3, 0] = -0.56

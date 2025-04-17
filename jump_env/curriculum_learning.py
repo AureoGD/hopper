@@ -1,10 +1,12 @@
 import numpy as np
 import time
 from collections import deque
+from icecream import ic
 
 
 class JumpMLFcns:
     def __init__(self, _robot_states):
+        ic.enable()
         self.N = 30
 
         self.actions = deque([-1] * self.N, maxlen=self.N)
@@ -77,7 +79,7 @@ class JumpMLFcns:
         self.episode_reward = 0
         self.min_reward = -250
 
-        self.max_inter = 2000
+        self.max_inter = 750
         self.inter = 0
 
         self.rewards = np.zeros((12, 1), dtype=np.double)
@@ -104,7 +106,7 @@ class JumpMLFcns:
 
         # Weight for stagnation penalty
         self.stagnation_metric = 0
-        self.stagnation_penalty_weight = 3.5
+        self.stagnation_penalty_weight = 4.0
         self.stagnation_steps = 0  # Count of how long the agent is "stuck"
         self.stagnation_threshold = 150  # How many steps before penalty
         self.prev_states = None  # Store previous states for comparison
@@ -128,8 +130,10 @@ class JumpMLFcns:
         # Survive reward
         self.survive_weight = 1.2
 
+        self.body_height_weight = 2
+
         # Body orientation reward
-        self.body_orietation_weight = 2.5
+        self.body_orietation_weight = 3.5
 
         # Po violation (not solved or error to create a PO)
         self.po_violation_weight = 1.5
@@ -143,8 +147,12 @@ class JumpMLFcns:
         # crouch
         self.standing_height = 0
         self.max_com_drop = 0.2
-        self.d_crouch_depth = 0
         self.crouch_weight = 1.0
+
+        # For dynamic thresholding of max_delta
+        self.delta_history = deque(maxlen=30)  # keep last 100 ∆‑steps
+        self.base_threshold = 1e-4  # never go below this
+        self.multiplier = 1.95  # how many σ below the mean
 
         self.first_interation = True
 
@@ -187,6 +195,9 @@ class JumpMLFcns:
         return self._normalize_states(states).reshape((self.NUM_OBS_STATES,))
 
     def _reward(self):
+        if self.robot_states.ag_act == 2:
+            pass
+
         self.rewards[:] = 0
 
         # Reward for survive
@@ -222,6 +233,8 @@ class JumpMLFcns:
         # Reward for use a empirical best mode for a phase:
         self.rewards[10] = 0.5 * self._preferred_mode_bonus()
 
+        self.rewards[11] = self.body_height_weight * self._body_position()
+
         reward = self.rewards.sum()
 
         curriclum_reward = self._curriculum_learning_check()
@@ -233,20 +246,20 @@ class JumpMLFcns:
         return reward
 
     def _done(self):
-        if self.episode_reward <= self.min_reward:
-            return True
+        # if self.episode_reward <= self.min_reward:
+        #     return True
 
-        if self.robot_states.toe_pos[1, 0] < -0.025:
-            return True
+        # if self.robot_states.toe_pos[1, 0] < -0.025:
+        #     return True
 
-        if self.robot_states.heel_pos[1, 0] < -0.025:
-            return True
+        # if self.robot_states.heel_pos[1, 0] < -0.025:
+        #     return True
 
-        # # check if the base postion in Z direction is near the ground
-        if self.robot_states.b_pos[1, 0] < 0.35:
-            return True
+        # # # check if the base postion in Z direction is near the ground
+        # if self.robot_states.b_pos[1, 0] < 0.35:
+        #     return True
 
-        if (self.n_jumps + 1) * self.max_inter <= self.inter:
+        if self.curriculum_phase * self.max_inter <= self.inter:
             return True
 
         if self.curriculum_phase > 2:
@@ -283,7 +296,6 @@ class JumpMLFcns:
         self.standing_height = 0
         self.curriculum_phase = 1
         self.prev_crouch_depth = 0
-        self.d_crouch_depth = 0
         self.mode_duration = 0
 
     #############################
@@ -301,9 +313,14 @@ class JumpMLFcns:
         )
 
     #############################
+    def _body_position(self):
+        if self.robot_states.b_pos[1, 0] < 0.3:
+            return -1
+        else:
+            return 0
 
     def _survive_reward(self):
-        return 1
+        return 0
 
     def _short_term_transition_penalty(self):
         """
@@ -357,7 +374,7 @@ class JumpMLFcns:
             float: A negative reward (penalty) in the range [-1, 0], or 0 if within threshold.
         """
         th = abs(self.robot_states.th[0, 0])
-        threshold = 0.8  # Angle (in rad) where penalty begins
+        threshold = 0.65  # Angle (in rad) where penalty begins
         max_th = 1.2  # Maximum angle for full penalty (overflow capped)
 
         if th > threshold:
@@ -367,17 +384,74 @@ class JumpMLFcns:
         else:
             return 0
 
-    def _stagnation_penalty(self):
-        """
-        Penalize the agent if both the robot state and control mode remain unchanged
-        for too many steps. The penalty scales between 0 and -1, where -1 means the
-        robot is fully stagnant beyond the threshold, and 0 means it's moving or
-        switching modes frequently.
+    # def _stagnation_penalty(self):
+    #     """
+    #     Penalize the agent if both the robot state and control mode remain unchanged
+    #     for too many steps. Uses a piecewise function to apply a small linear penalty
+    #     initially, then transitions to a sharper logistic penalty.
 
-        Also updates a stagnation metric used for observation.
+    #     Returns:
+    #         float: penalty in range [-1, 0]
+    #     """
+    #     current_states = np.hstack(
+    #         (
+    #             self.robot_states.r_pos.flatten(),
+    #             self.robot_states.r_vel.flatten(),
+    #             self.robot_states.th.flatten(),
+    #             self.robot_states.dth.flatten(),
+    #             self.robot_states.q.flatten(),
+    #             self.robot_states.dq.flatten(),
+    #         )
+    #     )
+    #     current_mode = self.robot_states.ag_act
+
+    #     if self.prev_states is None:
+    #         self.prev_states = current_states
+    #         self.prev_mode = current_mode
+    #         self.stagnation_metric = 0
+    #         return 0.0
+
+    #     delta_states = np.abs(current_states - self.prev_states)
+    #     mode_unchanged = current_mode == self.prev_mode
+    #     max_delta = np.max(delta_states)
+
+    #     # Deadband thresholds
+    #     if max_delta < 0.0009 and mode_unchanged:
+    #         self.stagnation_steps += 1
+    #     elif max_delta > 0.001 or not mode_unchanged:
+    #         self.stagnation_steps = 0
+
+    #     self.prev_states = current_states
+    #     self.prev_mode = current_mode
+
+    #     self.stagnation_metric = min(self.stagnation_steps / self.stagnation_threshold, 1.0)
+
+    #     # 🔸 Piecewise penalty curve
+    #     if self.stagnation_metric == 0:
+    #         return 0.0
+    #     elif self.stagnation_metric < 0.1:
+    #         return -0.1 * self.stagnation_metric
+    #     else:
+    #         return -1 / (1 + np.exp(-20 * (self.stagnation_metric - 0.2)))
+
+    def _is_stagnant(self, max_delta: float, mode_unchanged: bool) -> bool:
         """
-        # Concatenate key robot state variables
-        # TODO: maybe change for the base velocity
+        Return True if max_delta is below a dynamic threshold and mode hasn't changed.
+        """
+        # update history
+        self.delta_history.append(max_delta)
+
+        # compute mean & std of the history
+        arr = np.array(self.delta_history)
+        mu, std = arr.mean(), arr.std()
+
+        # dynamic threshold: mean minus multiplier·std, floored by base_threshold
+        dyn_thresh = max(self.base_threshold, mu - self.multiplier * std)
+
+        # stagnant if below threshold AND same mode
+        return mode_unchanged and (max_delta < dyn_thresh)
+
+    def _stagnation_penalty(self):
         current_states = np.hstack(
             (
                 self.robot_states.r_pos.flatten(),
@@ -391,43 +465,39 @@ class JumpMLFcns:
 
         current_mode = self.robot_states.ag_act
 
-        # Initialize on the first step
         if self.prev_states is None:
             self.prev_states = current_states
             self.prev_mode = current_mode
             self.stagnation_metric = 0
-            return 0
+            return 0.0
 
-        # Calculate if change occurred
         delta_states = np.abs(current_states - self.prev_states)
         mode_unchanged = current_mode == self.prev_mode
-
         max_delta = np.max(delta_states)
 
-        # Deadband logic
-        if max_delta < 0.001 and mode_unchanged:
+        # … compute current_states, delta_states, mode_unchanged as before …
+        max_delta = np.max(delta_states)
+
+        # now use the dynamic check
+        if self._is_stagnant(max_delta, mode_unchanged):
             self.stagnation_steps += 1
-            # print(f"Stag: {self.inter}")
-        elif max_delta > 0.01 or not mode_unchanged:
-            self.stagnation_steps = 0
         else:
-            pass
+            self.stagnation_steps = 0
 
-        # if self.stagnation_steps == 1:
-        #     print(f"[Stagnation detected] Step: {self.inter}")
-
-        # Update previous state/mode
+        # update prev_states/mode
         self.prev_states = current_states
         self.prev_mode = current_mode
 
-        # Normalize stagnation level (0 to 1)
+        # compute normalized stagnation_metric
         self.stagnation_metric = min(self.stagnation_steps / self.stagnation_threshold, 1.0)
 
-        penalty = -1 / (1 + np.exp(-20 * (self.stagnation_metric - 0.2)))
-
-        # Linearly scale the penalty to [-1, 0]
-        # return -self.stagnation_metric
-        return penalty
+        # 🔸 Piecewise penalty curve
+        if self.stagnation_metric == 0:
+            return 0.0
+        elif self.stagnation_metric < 0.1:
+            return -1 * self.stagnation_metric
+        else:
+            return -1 / (1 + np.exp(-20 * (self.stagnation_metric - 0.2)))
 
     def _check_rgc_violation(self):
         if self.robot_states.rcg_status == 0:
@@ -447,13 +517,10 @@ class JumpMLFcns:
             return 0
         r_z = self.robot_states.r_pos[1, 0]
         th = abs(self.robot_states.th[0, 0])
-        r_vel = np.linalg.norm(self.robot_states.r_vel)
-        dth = np.linalg.norm(self.robot_states.dth)
         valid_po = self.robot_states.ag_act not in self.prohibited_actions
 
         com_ok = r_z > 0.75
         upright = th < 0.15
-        low_motion = r_vel < 0.005 and dth < 0.05  # can adjust this threshold
 
         # if com_ok and upright and valid_po and low_motion:
         if com_ok and upright and self.stagnation_steps > 0:
@@ -477,31 +544,27 @@ class JumpMLFcns:
         if self.curriculum_phase != 2:
             return 0
 
-        com_z = self.robot_states.r_pos[1, 0]
-        crouch_depth = self.standing_com_height - com_z
-        self.d_crouch_depth = abs(self.prev_crouch_depth - crouch_depth) / self.dt
-        self.prev_crouch_depth = crouch_depth
+        valid_po = self.robot_states.ag_act not in self.prohibited_actions
 
-        # Normalize the crouch reward [0, 1]
-        if crouch_depth <= 0.001:
-            return 0  # Too high (standing)
-        else:
+        th = abs(self.robot_states.th[0, 0])
+        upright = th < 0.15
+
+        if upright and valid_po:
+            com_z = self.robot_states.r_pos[1, 0]
+            crouch_depth = self.standing_com_height - com_z
             reward = min(crouch_depth / self.max_com_drop, 1.0)
-            if reward <= 0.001:
-                return 0
-            else:
-                return reward
+            return reward
+        else:
+            return 0
 
     def _curriculum_learning_check(self):
         if self.curriculum_phase == 1 and self.phase1_success_steps > self.phase1_success_steps_threshold:
-            # print(f"End of phase 1: {self.inter}")
+            ic(f"End of phase 1: {self.inter}")
             self.curriculum_phase = 2
             self.standing_com_height = self.robot_states.r_pos[1, 0]
             return 100
-        # elif self.curriculum_phase == 2 and self.d_crouch_depth < 0.009 and self.robot_states.r_pos[1, 0] < 0.6:
-        elif self.curriculum_phase == 2 and self.stagnation_steps > 0 and self.robot_states.r_pos[1, 0] < 0.6:
-            # print(f"End of phase 2: {self.inter}")
-            # print(self.inter)
+        elif self.curriculum_phase == 2 and self.stagnation_steps > 0 and self.robot_states.r_pos[1, 0] < 0.65:
+            ic(f"End of phase 2: {self.inter}")
             self.curriculum_phase = 3
             return 100
 
@@ -542,9 +605,9 @@ class JumpMLFcns:
             float: A small positive reward (e.g., 0.5) or 0 otherwise.
         """
         if self.curriculum_phase == 1 and self.actions[0] == 0:
-            return 1.2
+            return 1
         if self.curriculum_phase == 1 and self.actions[0] == 1:
             return 1
-        if self.curriculum_phase == 2 and self.actions[0] in [2]:
+        if self.curriculum_phase == 2 and self.actions[0] == 2:
             return 1.0
         return 0.0

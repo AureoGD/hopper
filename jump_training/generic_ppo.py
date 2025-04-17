@@ -45,8 +45,8 @@ def train(
     hidden_layers: List[int] = [64, 64],
     total_interations: int = 500,
     num_envs: int = 8,
-    eval_freq: int = 10000,
-    save_freq: int = 25000,
+    eval_freq: int = 1000,
+    save_freq: int = 1000,
 ):
     timestamp = int(time.time())
     base_dir = f"agents/{policy}/{timestamp}"
@@ -92,6 +92,7 @@ def train(
         verbose=1,
         tensorboard_log=log_path,
         n_steps=512,
+        ent_coef=0.01,
         policy_kwargs=policy_kwargs,
         device="auto",
     )

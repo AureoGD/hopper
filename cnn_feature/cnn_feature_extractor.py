@@ -10,7 +10,7 @@ class CNN1DFeatureExtractor(BaseFeaturesExtractor):
     Converts (stack_size, state_dim) into a flattened feature vector for the policy/value network.
     """
 
-    def __init__(self, observation_space: gym.spaces.Box, output_dim: int = 128):
+    def __init__(self, observation_space: gym.spaces.Box, stack_size: int = 10, output_dim: int = 128):
         # Extract shape
         stack_size, state_dim = observation_space.shape
         self.stack_size = stack_size

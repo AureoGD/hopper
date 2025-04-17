@@ -13,3 +13,4 @@ best_model
 agents
 training_logs
 model/
+cnn_feature/__pycache__/
